@@ -4,6 +4,7 @@ import re
 class SeqBuilder:
     def __init__(self,seq:str,seqname:str,minmapq:int):
         self.seq=seq
+        self.seqlen=len(seq)
         self.seqname=seqname
         self.snpar=[{'A':0,'T':0,'C':0,'G':0} for i in list(seq)]
         self.covar=[0 for i in list(seq)]
@@ -40,17 +41,21 @@ class SeqBuilder:
                 qpos += length
             elif op in('D','N'):  # Deletion: consumes reference only; does add to coverage
                 for i in range(length):
-                    self.covar[rpos+i]+=1
-                if mapq>=self.minmapq:
-                    for i in range(length):
-                        self.ambcovar[rpos+i]+=1
+                    p=rpos+i
+                    if p>=self.seqlen:
+                        break
+                    self.covar[p]+=1
+                    if mapq>=self.minmapq:
+                        self.ambcovar[p]+=1
                 rpos += length
             elif op in ('M', '=', 'X'):  # Match/mismatch: consumes both; adds coverage
                 for i in range(length):
-                    self.covar[rpos+i]+=1
-                if mapq>=self.minmapq:
-                    for i in range(length):
-                        self.ambcovar[rpos+i]+=1
+                    p=rpos+i
+                    if p>=self.seqlen:
+                        break
+                    self.covar[p]+=1
+                    if mapq>=self.minmapq:
+                        self.ambcovar[p]+=1
                 rpos += length
                 qpos += length
 
@@ -64,10 +69,10 @@ class SeqBuilder:
             if op in ('H', 'S'):  # Hard/soft clip: consumes query only; does not add to coverage
                 qpos += length
             elif op == 'I':  # Insertion: consumes query only; does not add to coverage
-                self.inscol.append([rpos+1,length])
+                self.inscol.append([rpos,length])
                 qpos += length
             elif op in('D','N'):  # Deletion: consumes reference only; does add to coverage
-                self.delcol.append([rpos+1,length])
+                self.delcol.append([rpos,length])
                 rpos += length
             elif op in ('M', '=', 'X'):  # Match/mismatch: consumes both
                 rpos += length
@@ -83,13 +88,16 @@ class SeqBuilder:
                 qpos += length
             elif op == 'I':  # Insertion: consumes query only
                 qpos += length
-            elif op == 'D':  # Deletion: consumes reference only
+            elif op in('D','N'):  # Deletion: consumes reference only
                 rpos += length
             elif op in ('M', '=', 'X'):  # Match/mismatch: consumes both
                 for i in range(length):
                     base = seq[qpos + i]
                     if base in 'ATCG':
-                        self.snpar[rpos+i][base]+=1
+                        p=rpos+i
+                        if p>=self.seqlen:
+                            break
+                        self.snpar[p][base]+=1
                 rpos += length
                 qpos += length
             # Ignore N (skipped reference), P (padding) if present
@@ -144,6 +152,59 @@ def load_fasta(fafile):
 
 
 
+def test_Seq_Builder_add():
+    sb=SeqBuilder("AAATTTCCCGGG","hans",5)
+    sb.addread(1,"3M",4,"AAA")
+    sb.addread(1,"3M",5,"TTT")
+
+    assert sb.covar[0]==2
+    assert sb.ambcovar[0]==1
+    assert sb.covar[1]==2
+    assert sb.ambcovar[1]==1
+    assert sb.covar[2]==2
+    assert sb.ambcovar[2]==1
+    assert sb.covar[3]==0
+    assert sb.ambcovar[3]==0
+    assert sb.snpar[0]['A']==1
+    assert sb.snpar[0]['T']==1
+    
+
+    # AAATTT---CCCGGG
+    # 123456---789012
+    #    TTTAAACCC
+    sb.addread(4,"3=3I3X",5,"TTTAAACCC")
+    assert sb.covar[3]==1
+    assert sb.covar[4]==1
+    assert sb.covar[5]==1
+    assert sb.covar[6]==1
+    assert sb.covar[7]==1
+    assert sb.covar[8]==1
+    assert sb.covar[9]==0
+    assert sb.snpar[3]['T']==1
+    assert sb.snpar[6]['A']==0
+    assert sb.snpar[6]['C']==1
+    assert sb.inscol[0]==[6,3],  f"got {sb.inscol[0]}"
+
+
+    # AAATTTCCCGGG
+    # 123456789012
+    #    TTT---AAA
+    sb.addread(4,"3M3D3M",5,"TTTAAA")
+    assert sb.covar[3]==2
+    assert sb.covar[4]==2
+    assert sb.covar[5]==2
+    assert sb.covar[6]==2
+    assert sb.covar[7]==2
+    assert sb.covar[8]==2
+    assert sb.covar[9]==1
+    assert sb.covar[10]==1
+    assert sb.covar[11]==1
+    assert sb.delcol[0]==[6,3], f"got {sb.delcol[0]}"
+
+    sb.addread(12,"3M",5,"TTT")
+
+
+    print("Quick test of SeqBuilder add PASSED ✓")
 
 
 def test_Seq_Builder_init():
@@ -191,3 +252,4 @@ ATGCATGCATGC
 if __name__ == "__main__":
     test_fasta_loader()
     test_Seq_Builder_init()
+    test_Seq_Builder_add()
