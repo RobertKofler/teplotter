@@ -22,6 +22,13 @@ args = parser.parse_args()
 scgend=args.scgend
 scgs=[]
 for se in modules.SeqEntryReader(args.seqentry):
-    print(se.seqname)
     if se.seqname.endswith(scgend):
         scgs.append(se)
+
+if len(scgs)==0:
+    raise Exception("Cannot normalize without single copy genes")
+normfactor=modules.SeqEntry.getNormalizationFactor(scgs,args.enddist)
+
+for se in modules.SeqEntryReader(args.seqentry):
+    sen=se.normalize(normfactor)
+    print(str(sen))

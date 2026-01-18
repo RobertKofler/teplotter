@@ -3,6 +3,7 @@ from collections import defaultdict
 import re
 
 
+
 class SeqEntryReader:
     """
     Simple iterator over SeqEntry file that yields one record at a time.
@@ -37,19 +38,23 @@ class SeqEntryReader:
                 raise StopIteration
 
             line = line.rstrip('\n\r')
+            line=line.strip()
             seqName=line.split("\t")[0]
+            
+
+            # first record; initialize
             if self._activeSeq is None:
-                # first record
                 self._activeSeq=seqName
-                self._activeLines=[]
+                self._activeLines=[line]
+            # new record; safe and start new one
             elif seqName!=self._activeSeq:
                 # New record starts
                 # Yield previous record
                 se = SeqEntry.parse(self._activeLines)
                 self._activeSeq=seqName
-                self._activeLines = []
+                self._activeLines = [line]
                 return se
-            elif line.strip():  # skip empty lines
+            elif line:  # skip empty lines
                 self._activeLines.append(line)
 
     def _open_file(self):
@@ -132,6 +137,11 @@ class Indel:
         tp=[self.ref, self.type, f"{self.pos}",f"{self.length}",f"{self.count:.2f}"]
         tp="\t".join(tp)
         return tp
+    
+    def normalize(self,normfactor:float):
+        ni=Indel(self.ref,self.type,self.pos,self.length,float(self.count)/normfactor)
+        return ni
+
 
 class SNP:
     @classmethod
@@ -157,10 +167,35 @@ class SNP:
         tp="\t".join(tp)
         return tp
     
+    def normalize(self,normFactor:float):
+        acn=float(self.ac)/normFactor
+        tcn=float(self.tc)/normFactor
+        ccn=float(self.cc)/normFactor
+        gcn=float(self.gc)/normFactor
+        ns=SNP(self.ref,self.pos,self.refc,acn,tcn,ccn,gcn)
+        return ns
+    
 
 
 
 class SeqEntry:
+    @classmethod
+
+    def getNormalizationFactor(cls, seqEntries: list, minDistance:int):
+        totcoverages=[]
+        for se in seqEntries:
+            # ignore the ends of the entries
+            print(se,se.cov)
+            if len(se.cov) <= 2 *minDistance:
+                continue
+            tcov=se.cov[minDistance:-minDistance]
+            totcoverages.extend(tcov)
+        if len(totcoverages)==0:
+            raise Exception("Unable to normalize; no valid coverage for a single copy gene")
+        mean=float(sum(totcoverages))/float(len(totcoverages))
+        return mean
+        
+        
 
     @classmethod 
     def parse(cls,lines):
@@ -193,6 +228,10 @@ class SeqEntry:
                 ambcovar = [float(x) for x in tmp[2].split()]
             else:
                 raise Exception(f"Unknown feature {feature}")
+        if covar is None:
+            raise Exception(f"No coverage for {activeName}")
+        if ambcovar is None:
+            raise Exception(f"No ambiguous coverage for {activeName}")
         return SeqEntry(activeName,covar,ambcovar,snplist,indellist)
     
     def __init__(self,seqname:str,cov,ambcov,snplist,indellist):
@@ -216,6 +255,17 @@ class SeqEntry:
             tp.append(str(id))
         topr="\n".join(tp)
         return topr
+    
+    def normalize(self,normfactor:float):
+        cov=[float(i)/normfactor for i in self.cov]
+        ambcov=[float(i)/normfactor for i in self.ambcov]
+        snplist=[]
+        for s in self.snplist:
+            snplist.append(s.normalize(normfactor))
+        indellist=[]
+        for i in self.indellist:
+            indellist.append(i.normalize(normfactor))
+        return SeqEntry(self.seqname,cov,ambcov,snplist,indellist)
 
 
 class SeqBuilder:

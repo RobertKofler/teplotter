@@ -1,12 +1,5 @@
 #!/usr/bin/env python
-import os
-import sys
-import re
 import argparse
-import random
-import math
-import collections
-import fileinput
 import modules
 
 
