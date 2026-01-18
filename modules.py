@@ -185,11 +185,13 @@ class SeqEntry:
         totcoverages=[]
         for se in seqEntries:
             # ignore the ends of the entries
-            print(se,se.cov)
             if len(se.cov) <= 2 *minDistance:
                 continue
-            tcov=se.cov[minDistance:-minDistance]
-            totcoverages.extend(tcov)
+            if minDistance>0:
+                tcov=se.cov[minDistance:-minDistance]
+                totcoverages.extend(tcov)
+            else:
+                totcoverages.extend(se.cov)
         if len(totcoverages)==0:
             raise Exception("Unable to normalize; no valid coverage for a single copy gene")
         mean=float(sum(totcoverages))/float(len(totcoverages))
@@ -453,6 +455,20 @@ def load_fasta(fafile):
     
     return entries
 
+def test_computeNormalization():
+    ses=[SeqEntry("t",[10,]*10,[],[],[]),SeqEntry("t",[2,]*10,[],[],[])]
+    nf=SeqEntry.getNormalizationFactor(ses,0)
+    assert nf==6, "test1"
+
+    ses=[SeqEntry("t",[1,10,10,10,10,10,1],[],[],[]),SeqEntry("t",[1,2,2,2,2,2,1],[],[],[])]
+    nf=SeqEntry.getNormalizationFactor(ses,0)
+    assert nf<5, "test2"
+    nf=SeqEntry.getNormalizationFactor(ses,1)
+    assert nf==6, "test3"
+
+    print("Quick test computation of normalization factor passed ✓")
+
+
 def test_normalize():
     s=SNP("chr1",1,"A",5,6,7,1)
     sn=s.normalize(2.0)
@@ -604,3 +620,4 @@ if __name__ == "__main__":
     test_Seq_Builder_init()
     test_Seq_Builder_add()
     test_normalize()
+    test_computeNormalization()
