@@ -21,7 +21,7 @@ parser.add_argument("--output-dir", type=str, required=False, dest="outputdir", 
 
 args = parser.parse_args()
 seqset=None
-if "," in args.seqid:
+if "," in args.seqids:
     seqset=set(args.seqids.split(","))
 else:
     seqset=set([args.seqids])
@@ -36,8 +36,7 @@ for se in modules.SeqEntryReader(args.seqentry):
     if printall or se.seqname in seqset:
         tp=prepareForPrint(se,args.sampleid)
         if args.outputdir is not None:
-            full_path = os.path.join(outputdir, se.seqname)
-
+            full_path = os.path.join(args.outputdir, se.seqname)
             with open(full_path, "w") as f:
                 f.write(tp)
         else:
@@ -45,7 +44,7 @@ for se in modules.SeqEntryReader(args.seqentry):
 
 
 
-def prepareForPrint(se:modules.SeqEntry,sampleid:str):
+def prepareForPrint(se:modules.SeqEntry, sampleid:str):
     lines=[]
     for i,c in enumerate(se.cov):
         # seqname, sampleid, cov, pos, count
@@ -88,6 +87,9 @@ def prepareForPrint(se:modules.SeqEntry,sampleid:str):
 
         else:
             raise Exception(f"invalid type{i.type}")
+        
+    tr="\n".join(lines)
+    return tr
 
 
 

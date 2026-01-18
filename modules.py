@@ -138,7 +138,7 @@ class Indel:
         tp="\t".join(tp)
         return tp
     
-    def normalize(self,normfactor:float):
+    def normalize(self, normfactor:float):
         ni=Indel(self.ref,self.type,self.pos,self.length,float(self.count)/normfactor)
         return ni
 
@@ -453,6 +453,52 @@ def load_fasta(fafile):
     
     return entries
 
+def test_normalize():
+    s=SNP("chr1",1,"A",5,6,7,1)
+    sn=s.normalize(2.0)
+    assert sn.ref=="chr1"
+    assert sn.pos== 1
+    assert sn.refc=="A"
+    assert sn.ac==2.5
+    assert sn.tc==3
+    assert sn.cc==3.5
+    assert sn.gc==0.5
+
+    print("Quick test of SNP normalization PASSED ✓")
+    id=Indel("chr2", "ins",5,2,11)
+    idn=id.normalize(2.0)
+    assert idn.ref == "chr2"
+    assert idn.type=="ins"
+    assert idn.pos==5
+    assert idn.count==5.5
+    assert idn.length==2
+    print("Quick test of Insertion normalization PASSED ✓")
+    deli=Indel("chr3", "del",5,2,20)
+    de=deli.normalize(5.0)
+    assert de.ref == "chr3"
+    assert de.type=="del"
+    assert de.pos==5
+    assert de.count==4
+    assert de.length==2
+    print("Quick test of Deletion normalization PASSED ✓")
+
+    id=Indel("chr2", "ins",5,2,11)
+    deli=Indel("chr3", "del",5,2,20)
+    s=SNP("chr1",1,"A",5,6,7,1)
+    se=SeqEntry("te1",[5,6,6,4,2],[2,3,4,6,1],[s],[id,deli])
+    sn=se.normalize(2)
+    assert sn.cov[0]==2.5
+    assert sn.cov[1]==3
+    assert sn.cov[4]==1
+    assert sn.ambcov[0]==1
+    assert sn.ambcov[1]==1.5
+    assert sn.ambcov[4]==0.5
+    assert sn.ambcov[3]==3
+    assert sn.snplist[0].ac==2.5
+    assert sn.indellist[0].count==5.5
+    assert sn.indellist[1].count==10
+    print("Quick test of SeqEntry normalization PASSED ✓")
+
 
 
 
@@ -487,7 +533,7 @@ def test_Seq_Builder_add():
     assert sb.snpar[3]['T']==1
     assert sb.snpar[6]['A']==0
     assert sb.snpar[6]['C']==1
-    assert sb.inscol[0]==[6,3],  f"got {sb.inscol[0]}"
+    assert sb.inscol[0]==(6,3),  f"got {sb.inscol[0]}"
 
 
     # AAATTTCCCGGG
@@ -503,7 +549,7 @@ def test_Seq_Builder_add():
     assert sb.covar[9]==1
     assert sb.covar[10]==1
     assert sb.covar[11]==1
-    assert sb.delcol[0]==[6,3], f"got {sb.delcol[0]}"
+    assert sb.delcol[0]==(6,3), f"got {sb.delcol[0]}"
 
     sb.addread(12,"3M",5,"TTT")
 
@@ -557,3 +603,4 @@ if __name__ == "__main__":
     test_fasta_loader()
     test_Seq_Builder_init()
     test_Seq_Builder_add()
+    test_normalize()
