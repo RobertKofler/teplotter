@@ -1,5 +1,91 @@
 from io import StringIO, TextIOBase
+from collections import defaultdict
 import re
+
+
+def isssnp(refc,hash,cov,minc,minfreq):
+    # refc = A
+    # hash =
+    if 'A'!= refc:
+        ac=hash['A']
+        af=float(ac)/float(cov)
+        if ac>=minc and af>=minfreq:
+            return True
+    if 'T' != refc:
+        tc=hash['T']
+        tf=float(tc)/float(cov)
+        if tc>=minc and tf >=minfreq:
+            return True
+    if 'C'!= refc:
+        cc=hash['C']
+        cf=float(cc)/float(cov)
+        if cc>=minc and cf>=minfreq:
+            return True
+    if 'G' != refc:
+        gc=hash['G']
+        gf=float(gc)/float(cov)
+        if gc>=minc and gf >=minfreq:
+            return True
+    return False
+
+
+class Indel:
+ 
+    def __init__(self,ref:str,type:str,pos:int,length:int,count):
+        self.ref=ref
+        self.type=type # ins or del
+        self.pos=pos
+        self.length=length
+        self.count=count
+    
+    def __str__(self):
+        # ref, type, pos, length, count
+        tp=[self.ref, self.type, f"{self.pos}",f"{self.length}",f"{self.count:.2f}"]
+        tp="\t".join(tp)
+        return tp
+
+class SNP:
+    def __init__(self,ref:str,pos:int,refc:str,ac,tc,cc,gc):
+        self.ref=ref
+        self.pos=pos
+        self.refc=refc
+        self.ac=ac
+        self.tc=tc
+        self.gc=gc
+        self.cc=cc
+    
+    def __str__(self):
+        # ref, 'snp', pos, refc, ac tc cc gc
+        tp=[self.ref, "snp",  f"{self.pos}", self.refc,f"{self.ac:.2f}",f"{self.tc:.2f}",f"{self.cc:.2f}",f"{self.gc:.2f}"] 
+        tp="\t".join(tp)
+        return tp
+    
+
+
+
+class SeqEntry:
+    def __init__(self,seqname:str,cov,ambcov,snplist,indellist):
+        self.seqname=seqname
+        self.cov=cov
+        self.ambcov=ambcov
+        self.snplist=snplist
+        self.indellist=indellist
+    
+    def __str__(self):
+        # cov
+        tmp=" ".join([f"{i:.2f}" for i in self.cov])
+        tpcov="\t".join([self.seqname,"cov",tmp])
+        #ambcov
+        tmp=" ".join([f"{i:.2f}"  for i in self.ambcov])
+        tpambcov="\t".join([self.seqname,"ambcov",tmp])
+        tp=[tpcov,tpambcov]
+        for s in self.snplist:
+            tp.append(str(s))
+        for id in self.indellist:
+            tp.append(str(id))
+        topr="\n".join(tp)
+        return topr
+
 
 class SeqBuilder:
     def __init__(self,seq:str,seqname:str,minmapq:int):
@@ -69,10 +155,10 @@ class SeqBuilder:
             if op in ('H', 'S'):  # Hard/soft clip: consumes query only; does not add to coverage
                 qpos += length
             elif op == 'I':  # Insertion: consumes query only; does not add to coverage
-                self.inscol.append([rpos,length])
+                self.inscol.append((rpos,length))
                 qpos += length
             elif op in('D','N'):  # Deletion: consumes reference only; does add to coverage
-                self.delcol.append([rpos,length])
+                self.delcol.append((rpos,length))
                 rpos += length
             elif op in ('M', '=', 'X'):  # Match/mismatch: consumes both
                 rpos += length
@@ -109,6 +195,43 @@ class SeqBuilder:
         self.__addcoverage(refpos,ops,mapq) # increase coverage; only cigar and mapquality considered
         self.__addindels(refpos,ops)        # add indels; only cigar considered; mapq ignored
         self.__addSNPs(refpos,ops,seq)      # add snps; only cigar considered; mapq ignored
+    
+    def toSeqEntry(self,mcsnp,mfsnp,mcindel,mfindel):
+        snplist=[]
+        for i,snp in enumerate(self.snpar):
+            refc=self.seq[i]
+            cov=self.covar[i]
+            if isssnp(refc,snp,cov,mcsnp,mfsnp):
+                snpentry=SNP(self.seqname,i+1,refc,snp['A'],snp['T'],snp['C'],snp['G']) # one based snp position
+                snplist.append(snpentry)
+        
+        indellist=[]
+        # INSERTIONS
+        tmp=defaultdict(int)
+        for ins in self.inscol:
+            tmp[ins]+=1
+        for ins,count in tmp.items():
+            pos=ins[0]-1 # position in ins is 1-based but coverage is 0-based
+            cov=self.covar[pos]
+            insfreq=float(count)/float(cov)
+            if count>=mcindel and insfreq>=mfindel:
+                id=Indel(self.seqname,"ins",ins[0],ins[1],count)
+                indellist.append(id)
+
+        # DELETIONS; kept separate on purpose; in case I want to treat them differentially later
+        tmp=defaultdict(int)
+        for de in self.delcol:
+            tmp[de]+=1
+        for de,count in tmp.items():
+            pos=de[0]-1 # position in ins is 1-based but coverage is 0-based
+            cov=self.covar[pos]
+            defreq=float(count)/float(cov)
+            if count>=mcindel and defreq>=mfindel:
+                id=Indel(self.seqname,"del",ins[0],ins[1],count)
+                indellist.append(id)
+
+        se=SeqEntry(self.seqname,self.covar,self.ambcovar)
+        return se
 
         
 
