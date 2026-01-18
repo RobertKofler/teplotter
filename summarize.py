@@ -21,7 +21,7 @@ Authors
     Robert Kofler
 """)
 parser.add_argument('--sam', type=argparse.FileType('r'), default=None,dest="sam", required=True, help="A sam file")
-parser.add_argument("--fasta", type=int, required=True, dest="fasta", default=1, help="the fasta file to which reads were mapped")
+parser.add_argument("--fasta", type=str, required=True, dest="fasta", default=None, help="the fasta file to which reads were mapped")
 parser.add_argument("--mapqth", type=int, required=False, dest="mapqth", default=5, help="mapping quality threshold; below ambiguous")
 parser.add_argument("--mc-snp", type=int, required=False, dest="mcsnp", default=5, help="minimum count of SNPs")
 parser.add_argument("--mf-snp", type=float, required=False, dest="mfsnp", default=0.1, help="minimum frequency of SNPs")
@@ -30,7 +30,7 @@ parser.add_argument("--mf-indel", type=float, required=False, dest="mfindel", de
 args = parser.parse_args()
 
 # load fasta from file into dict
-fastalib=modules.fasta_loader(args.fasta)
+fastalib=modules.load_fasta(args.fasta)
 
 #
 activeBuilder=None

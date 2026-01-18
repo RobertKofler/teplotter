@@ -3,9 +3,92 @@ from collections import defaultdict
 import re
 
 
+class SeqEntryReader:
+    """
+    Simple iterator over SeqEntry file that yields one record at a time.
+
+    
+    Usage:
+        for se in SeqEntry("seqentryfile.se"):
+            ...
+    """
+    
+    def __init__(self, file):
+        self.file = file
+        self._file = None
+        self._should_close = False
+
+    def __iter__(self):
+        self._open_file()
+        self._activeSeq = None
+        self._activeLines = []
+        return self
+
+    def __next__(self):
+        while True:
+            line = self._file.readline()
+            if not line:
+                # End of file — yield last record if any
+                if self._activeSeq:
+                    se = SeqEntry.parse(self._activeLines)
+                    self._activeSeq = None
+                    self._activeLines = []
+                    return se
+                raise StopIteration
+
+            line = line.rstrip('\n\r')
+            seqName=line.split("\t")[0]
+            if self._activeSeq is None:
+                # first record
+                self._activeSeq=seqName
+                self._activeLines=[]
+            elif seqName!=self._activeSeq:
+                # New record starts
+                # Yield previous record
+                se = SeqEntry.parse(self._activeLines)
+                self._activeSeq=seqName
+                self._activeLines = []
+                return se
+            elif line.strip():  # skip empty lines
+                self._activeLines.append(line)
+
+    def _open_file(self):
+        if self._file is not None:
+            return
+        if hasattr(self.file, 'readline'):
+            # already a file object
+            self._file = self.file
+            self._should_close = False
+        else:
+            # assume it's a path
+            path = self.file
+            if path.endswith(('.gz', '.gzip')):
+                import gzip
+                self._file = gzip.open(path, 'rt')
+            else:
+                self._file = open(path, 'r')
+            self._should_close = True
+
+    
+
+    def close(self):
+        if self._should_close and self._file is not None:
+            self._file.close()
+            self._file = None
+
+    def __enter__(self):
+        self._open_file()
+        return self
+
+    def __exit__(self): 
+        self.close()
+
+
 def isssnp(refc,hash,cov,minc,minfreq):
     # refc = A
     # hash =
+    if cov==0:
+        return False
     if 'A'!= refc:
         ac=hash['A']
         af=float(ac)/float(cov)
@@ -30,6 +113,12 @@ def isssnp(refc,hash,cov,minc,minfreq):
 
 
 class Indel:
+    @classmethod
+    def parse(cls,e):
+        if len(e)!=5:
+            raise Exception(f"Cannot parse Indel {e}")
+        ref,type,pos,length,count=e[0],e[1],int(e[2]),int(e[3]),float(e[4])
+        return Indel(ref,type,pos,length,count)
  
     def __init__(self,ref:str,type:str,pos:int,length:int,count):
         self.ref=ref
@@ -45,6 +134,14 @@ class Indel:
         return tp
 
 class SNP:
+    @classmethod
+    def parse(cls,e):
+        if len(e)!=8:
+            raise Exception(f"Cannot parse SNP {e}")
+        ref,type,pos,refc,ac,tc,cc,gc =e[0],e[1],int(e[2]),e[3],float(e[4]),float(e[5]),float(e[6]),float(e[7])
+        return SNP(ref,pos,refc,ac,tc,cc,gc)
+
+
     def __init__(self,ref:str,pos:int,refc:str,ac,tc,cc,gc):
         self.ref=ref
         self.pos=pos
@@ -64,6 +161,40 @@ class SNP:
 
 
 class SeqEntry:
+
+    @classmethod 
+    def parse(cls,lines):
+        activeName=None
+        covar=None
+        ambcovar=None
+        snplist=[]
+        indellist=[]
+
+        for l in lines:
+            tmp=l.split("\t")
+            sn=tmp[0]
+            if activeName is None:
+                activeName=sn
+            assert sn == activeName
+            feature=tmp[1]
+            if feature=="ins" or feature == "del":
+                indel=Indel.parse(tmp)
+                indellist.append(indel)
+            elif feature == "snp":
+                snp=SNP.parse(tmp)
+                snplist.append(snp)
+            elif feature =="cov":
+                if covar is not None:
+                    raise Exception(f"two coverage arrays for sequence {sn}")
+                covar = [float(x) for x in tmp[2].split()]
+            elif feature =="ambcov":
+                if ambcovar is not None:
+                    raise Exception(f"two amb coverage arrays for sequence {sn}")
+                ambcovar = [float(x) for x in tmp[2].split()]
+            else:
+                raise Exception(f"Unknown feature {feature}")
+        return SeqEntry(activeName,covar,ambcovar,snplist,indellist)
+    
     def __init__(self,seqname:str,cov,ambcov,snplist,indellist):
         self.seqname=seqname
         self.cov=cov
@@ -227,10 +358,10 @@ class SeqBuilder:
             cov=self.covar[pos]
             defreq=float(count)/float(cov)
             if count>=mcindel and defreq>=mfindel:
-                id=Indel(self.seqname,"del",ins[0],ins[1],count)
+                id=Indel(self.seqname,"del",de[0],de[1],count)
                 indellist.append(id)
 
-        se=SeqEntry(self.seqname,self.covar,self.ambcovar)
+        se=SeqEntry(self.seqname,self.covar,self.ambcovar,snplist,indellist)
         return se
 
         
