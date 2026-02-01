@@ -59,12 +59,21 @@ Authors
 -------
     Robert Kofler
 """)
-parser.add_argument('--seq-entries', type=str, default=None,dest="seqentry", required=True, help="A seq entry file")
+parser.add_argument('--so', type=str, default=None,dest="so", required=True, help="A sequence overview (so) file")
 parser.add_argument("--scg-ids", type=str, required=True, dest="seqids", default=None, help="IDs of the entries that should be plotted; separated by comma; can also be 'ALL'")
 parser.add_argument("--sample-id", type=str, required=False, dest="sampleid", default="x", help="the ID of current sample")
-parser.add_argument("--output-dir", type=str, required=False, dest="outputdir", default=None, help="the output directory")
+parser.add_argument("--output-dir", type=str, required=False, dest="outputdir", default=None, help="the output directory; a plotable will be written for each fasta entry")
+parser.add_argument("--output-file", type=str, required=False, dest="outfile", default=None, help="output file in plotable format;")
+
+
 
 args = parser.parse_args()
+
+if args.outfile is not None and args.outputdir is not None:
+    raise Exception("invalid parameters; either provide output-dir or output-file; not both")
+# initialize writer
+writer=modules.Writer(args.outfile)
+
 seqset=None
 if "," in args.seqids:
     seqset=set(args.seqids.split(","))
@@ -86,7 +95,7 @@ for se in modules.SeqEntryReader(args.seqentry):
             with open(full_path, "w") as f:
                 f.write(tp)
         else:
-            print(tp)
+            writer.write(tp)
 
 
 

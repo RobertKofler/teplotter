@@ -20,7 +20,10 @@ parser.add_argument("--mc-snp", type=int, required=False, dest="mcsnp", default=
 parser.add_argument("--mf-snp", type=float, required=False, dest="mfsnp", default=0.1, help="minimum frequency of SNPs")
 parser.add_argument("--mc-indel", type=int, required=False, dest="mcindel", default=3, help="minimum count of indels")
 parser.add_argument("--mf-indel", type=float, required=False, dest="mfindel", default=0.01, help="minimum frequency of indels")
+parser.add_argument("--output-file", type=str, required=False, dest="outfile", default=None, help="output file in so format; if none is provided output will be screen")
+
 args = parser.parse_args()
+writer=modules.Writer(args.outfile)
 
 # load fasta from file into dict
 fastalib=modules.load_fasta(args.fasta)
@@ -61,7 +64,7 @@ for line in args.sam:
     # new refseq
     if ref != activeBuilder.seqname:
          sbe=activeBuilder.toSeqEntry(args.mcsnp,args.mfsnp,args.mcindel,args.mfindel)
-         print(str(sbe))
+         writer.write(str(sbe))
          # print entry
          refseq=fastalib[ref]
          activeBuilder=modules.SeqBuilder(refseq,ref,args.mapqth)
@@ -71,7 +74,7 @@ for line in args.sam:
 
 # process the last one as well
 sbe=activeBuilder.toSeqEntry(args.mcsnp,args.mfsnp,args.mcindel,args.mfindel)
-print(str(sbe))
+writer.write(str(sbe))
 
 
 

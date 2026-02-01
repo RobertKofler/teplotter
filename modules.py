@@ -3,6 +3,26 @@ from collections import defaultdict
 import re
 
 
+class Writer:
+
+    def __init__(self,outfile):
+        self.outfile=outfile
+        self.fh=None
+        self.shouldclose=False
+        if outfile is not None:
+            self.fh=open(outfile,"w")
+            self.shouldclose=True
+        
+    def write(self,towrite:str):
+        if self.fh is not None:
+            self.fh.write(towrite+"\n")
+        else:
+            print(towrite)
+    
+    def __exit__(self):
+            if self.shouldclose and self.fh is not None:
+                self.fh.close()
+                self.fh = None
 
 class SeqEntryReader:
     """
@@ -176,28 +196,48 @@ class SNP:
         return ns
     
 
-
-
-class SeqEntry:
+class NormFactor:
     @classmethod
+    def getNormalizationFactor(cls, filename:str, seqending:str, minEndDistance: int, quanitle:int):
+        # compute the normalization factor from a seq-entry file (seq overview file so-file)
+        scgs=[]
+        for se in SeqEntryReader(filename):
+            if se.seqname.endswith(seqending):
+                scgs.append(se)
 
-    def getNormalizationFactor(cls, seqEntries: list, minDistance:int):
+        if len(scgs)==0:
+            raise Exception("Cannot normalize without single copy genes")
+        normfactor=NormFactor.computeNormFactorForSe(scgs,minEndDistance,quanitle)
+        return normfactor
+
+    @classmethod
+    def computeNormFactorForSe(cls, seqEntries: list, minDistance:int,quantile:int):
+        assert quantile<50 and quantile>0
+        # compute normalizatino factor for seq-entries
         totcoverages=[]
         for se in seqEntries:
             # ignore the ends of the entries
             if len(se.cov) <= 2 *minDistance:
                 continue
             if minDistance>0:
+                # exclude the ends of the scgs
                 tcov=se.cov[minDistance:-minDistance]
                 totcoverages.extend(tcov)
             else:
                 totcoverages.extend(se.cov)
+
+        # finaly exclude the quantiles of the largest and smallest coverages        
+        totcoverages.sort()
+        qfrac=float(quantile)/100.0
+        qlen=int(len(totcoverages)*qfrac)
+        totcoverages=totcoverages[qlen:-qlen]
         if len(totcoverages)==0:
             raise Exception("Unable to normalize; no valid coverage for a single copy gene")
         mean=float(sum(totcoverages))/float(len(totcoverages))
         return mean
-        
-        
+
+
+class SeqEntry:
 
     @classmethod 
     def parse(cls,lines):
