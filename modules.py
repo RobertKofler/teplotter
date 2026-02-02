@@ -212,7 +212,7 @@ class NormFactor:
 
     @classmethod
     def computeNormFactorForSe(cls, seqEntries: list, minDistance:int,quantile:int):
-        assert quantile<50 and quantile>0
+        assert quantile<50 and quantile>=0
         # compute normalizatino factor for seq-entries
         totcoverages=[]
         for se in seqEntries:
@@ -230,7 +230,8 @@ class NormFactor:
         totcoverages.sort()
         qfrac=float(quantile)/100.0
         qlen=int(len(totcoverages)*qfrac)
-        totcoverages=totcoverages[qlen:-qlen]
+        if quantile>0:
+            totcoverages=totcoverages[qlen:-qlen]
         if len(totcoverages)==0:
             raise Exception("Unable to normalize; no valid coverage for a single copy gene")
         mean=float(sum(totcoverages))/float(len(totcoverages))
@@ -353,9 +354,9 @@ class SeqBuilder:
                     p=rpos+i
                     if p>=self.seqlen:
                         break
-                    self.covar[p]+=1
-                    if mapq>=self.minmapq:
-                        self.ambcovar[p]+=1
+                    self.covar[p]+=0 # should i add to coverage -> at moment no
+                    if mapq<self.minmapq:
+                        self.ambcovar[p]+=0 # should i add to coverage -> at moment no
                 rpos += length
             elif op in ('M', '=', 'X'):  # Match/mismatch: consumes both; adds coverage
                 for i in range(length):
@@ -363,7 +364,7 @@ class SeqBuilder:
                     if p>=self.seqlen:
                         break
                     self.covar[p]+=1
-                    if mapq>=self.minmapq:
+                    if mapq<self.minmapq:
                         self.ambcovar[p]+=1
                 rpos += length
                 qpos += length
@@ -496,14 +497,15 @@ def load_fasta(fafile):
     return entries
 
 def test_computeNormalization():
+    # todo add tests for quantiles
     ses=[SeqEntry("t",[10,]*10,[],[],[]),SeqEntry("t",[2,]*10,[],[],[])]
-    nf=SeqEntry.getNormalizationFactor(ses,0)
+    nf=NormFactor.computeNormFactorForSe(ses,0,0)
     assert nf==6, "test1"
 
     ses=[SeqEntry("t",[1,10,10,10,10,10,1],[],[],[]),SeqEntry("t",[1,2,2,2,2,2,1],[],[],[])]
-    nf=SeqEntry.getNormalizationFactor(ses,0)
+    nf=NormFactor.computeNormFactorForSe(ses,0,0)
     assert nf<5, "test2"
-    nf=SeqEntry.getNormalizationFactor(ses,1)
+    nf=NormFactor.computeNormFactorForSe(ses,1,0)
     assert nf==6, "test3"
 
     print("Quick test computation of normalization factor passed ✓")
@@ -599,9 +601,9 @@ def test_Seq_Builder_add():
     assert sb.covar[3]==2
     assert sb.covar[4]==2
     assert sb.covar[5]==2
-    assert sb.covar[6]==2
-    assert sb.covar[7]==2
-    assert sb.covar[8]==2
+    assert sb.covar[6]==1
+    assert sb.covar[7]==1
+    assert sb.covar[8]==1
     assert sb.covar[9]==1
     assert sb.covar[10]==1
     assert sb.covar[11]==1

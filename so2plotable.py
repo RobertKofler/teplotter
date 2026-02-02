@@ -3,17 +3,34 @@ import argparse
 import modules
 import os
 
+
+def prepareCoveragForPrint(set:list, sampleid:str,covtype:str):
+    tmp=[]
+    for i,c in enumerate(set):
+        # seqname, sampleid, cov, pos, count
+        t=[se.seqname,sampleid,covtype,str(i+1),str(c)]
+        tmp.append(t)
+       
+    first,last=tmp[0],tmp[-1]
+    newfirst=[first[0],first[1],first[2],first[3],"0.0"]
+    newlast=[last[0],last[1],last[2],last[3],"0.0"]
+    tmp.insert(0,newfirst)
+    tmp.append(newlast)
+
+    topr=[]
+    for i in tmp:
+        topr.append("\t".join(i))
+    return topr
+
+
 def prepareForPrint(se:modules.SeqEntry, sampleid:str):
     lines=[]
-    for i,c in enumerate(se.cov):
-        # seqname, sampleid, cov, pos, count
-        tmp=[se.seqname,sampleid,"cov",str(i+1),str(c)]
-        lines.append("\t".join(tmp))
+    covt=prepareCoveragForPrint(se.cov,sampleid,"cov")
+    ambcovt=prepareCoveragForPrint(se.ambcov,sampleid,"ambcov")
+    lines.extend(covt)
+    lines.extend(ambcovt)
 
-    for i,ac in enumerate(se.ambcov):
-        # seqname, sampleid, ambcov, pos, count
-        tmp=[se.seqname,sampleid,"ambcov",str(i+1),str(ac)]
-        lines.append("\t".join(tmp))
+
 
     for s in se.snplist:
         # seqname, sampleid, snp, pos, refc, ac, tc, cc, gc
@@ -60,7 +77,7 @@ Authors
     Robert Kofler
 """)
 parser.add_argument('--so', type=str, default=None,dest="so", required=True, help="A sequence overview (so) file")
-parser.add_argument("--scg-ids", type=str, required=True, dest="seqids", default=None, help="IDs of the entries that should be plotted; separated by comma; can also be 'ALL'")
+parser.add_argument("--seq-ids", type=str, required=True, dest="seqids", default=None, help="IDs of the entries that should be plotted; separated by comma; can also be 'ALL'")
 parser.add_argument("--sample-id", type=str, required=False, dest="sampleid", default="x", help="the ID of current sample")
 parser.add_argument("--output-dir", type=str, required=False, dest="outputdir", default=None, help="the output directory; a plotable will be written for each fasta entry")
 parser.add_argument("--output-file", type=str, required=False, dest="outfile", default=None, help="output file in plotable format;")
@@ -83,8 +100,8 @@ printall=False
 if args.seqids.lower() == "all":
     printall=True
 
-args = parser.parse_args()
-for se in modules.SeqEntryReader(args.seqentry):
+
+for se in modules.SeqEntryReader(args.so):
     if printall or se.seqname in seqset:
         tp=prepareForPrint(se,args.sampleid)
         if args.outputdir is not None:
