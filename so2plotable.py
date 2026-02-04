@@ -3,6 +3,19 @@ import argparse
 import modules
 import os
 
+padto=9
+def format_col(topr:list):
+    if padto==0:
+        return "\t".join(topr)
+    tf=[]
+    for i in range(padto):
+        if(i< len(topr)):
+            tf.append(str(topr[i]))
+        else:
+            tf.append("")
+    return "\t".join(tf)
+
+
 
 def prepareCoveragForPrint(set:list, sampleid:str,covtype:str):
     tmp=[]
@@ -19,7 +32,7 @@ def prepareCoveragForPrint(set:list, sampleid:str,covtype:str):
 
     topr=[]
     for i in tmp:
-        topr.append("\t".join(i))
+        topr.append(format_col(i))
     return topr
 
 
@@ -38,13 +51,13 @@ def prepareForPrint(se:modules.SeqEntry, sampleid:str):
         a={"A":s.ac,"T":s.tc,"C":s.cc,"G":s.gc}
         a[s.refc]=0 # do not visualize the reference allele for a SNP
         tmp=[se.seqname,sampleid,"snp",str(s.pos), s.refc,str(a["A"]) , str(a["T"]) , str(a["C"]) , str(a["G"])]
-        lines.append("\t".join(tmp))
+        lines.append(format_col(tmp))
     
     for i in se.indellist:
         if i.type=="del":
             # seqname, sampleid, del, pos, length, count
             tmp=[se.seqname,sampleid,"del",str(i.pos),str(i.length),str(i.count)]
-            lines.append("\t".join(tmp))
+            lines.append(format_col(tmp))
             # ref:str,type:str,pos:int,length:int,count
 
         elif i.type=="ins":
@@ -59,7 +72,7 @@ def prepareForPrint(se:modules.SeqEntry, sampleid:str):
             startcov=se.cov[startpos-1]
             endcov=se.cov[endpos-1]
             tmp=[se.seqname,sampleid,"ins",str(startpos),str(endpos),str(startcov),str(endcov),str(i.count)]
-            lines.append("\t".join(tmp))
+            lines.append(format_col(tmp))
 
         else:
             raise Exception(f"invalid type{i.type}")
