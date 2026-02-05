@@ -49,9 +49,11 @@ def prepareForPrint(se:modules.SeqEntry, sampleid:str):
         # seqname, sampleid, snp, pos, refc, ac, tc, cc, gc
         # SNP(ref,pos,refc,ac,tc,cc,gc)
         a={"A":s.ac,"T":s.tc,"C":s.cc,"G":s.gc}
-        a[s.refc]=0 # do not visualize the reference allele for a SNP
-        tmp=[se.seqname,sampleid,"snp",str(s.pos), s.refc,str(a["A"]) , str(a["T"]) , str(a["C"]) , str(a["G"])]
-        lines.append(format_col(tmp))
+        for base,count in a.items():
+            if count ==0 or base==s.refc:
+                continue
+            tmp=[se.seqname,sampleid,"snp",str(s.pos), s.refc,base,str(count)]
+            lines.append(format_col(tmp))
     
     for i in se.indellist:
         if i.type=="del":

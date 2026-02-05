@@ -12,10 +12,12 @@ mininsertion=5
 
 data <- read_tsv(file,col_names = FALSE,cols(.default = col_character()))
 
+
 # split of coverage
 cov <- data |> filter(str_detect(X3, "cov"))
 cov <- cov |> rename(seqid=X1,sampleid=X2,feature=X3,pos=X4,cov=X5) 
 cov <- cov |>mutate(pos = as.double(pos),cov= as.double(cov))
+
 
 
 # split of ambcoverge
@@ -25,8 +27,9 @@ ambcov <- ambcov |>mutate(pos = as.double(pos),cov= as.double(cov))
 
 # split of snps
 snp <- data |> filter(str_detect(X3, "snp"))
-snp <- snp |> rename(seqid=X1,sampleid=X2,feature=X3,pos=X4,refc=X5,ac=X6,tc=X7,cc=X8,gc=X9) 
-snp <- snp |>  mutate(pos = as.double(pos),ac= as.double(ac),tc= as.double(tc),cc= as.double(cc),gc= as.double(gc))
+snp <- snp |> rename(seqid=X1,sampleid=X2,feature=X3,pos=X4,refc=X5,base=X6,count=X7) 
+snp <- snp |>  mutate(pos = as.double(pos),count= as.double(count))
+
 
 # split of insertions
 insertion <- data |> filter(str_detect(X3, "ins"))
@@ -49,6 +52,21 @@ plo<-ggplot()+
   geom_polygon(data = coverage, mapping = aes(x = pos, y = cov), fill = 'grey', color = 'grey') +
   geom_polygon(data = ambcoverage, aes(x = pos, y = ambcov), fill = 'lightgrey', color = 'lightgrey')+
   geom_curve(data = insertion, mapping = aes(x = start, y = startcov, xend = end, yend = endcov, linewidth = scale),  curvature = -0.15, ncp=5,show.legend = FALSE)+
-  scale_linewidth(range = c(0.3, 2))+xlab("position") + ylab("coverage")
+  scale_linewidth(range = c(0.3, 2))+xlab("position") + ylab("coverage")+
+  geom_bar(data=snp,aes(x=pos,y=count,fill=base),stat="identity",width=2)+
+  geom_bar(data=deletion,aes(x=pos,y=count),stat="identity",color="grey50",width=4)
+
+# faceting
+nseq<-n_distinct(cov$seqid)
+nsample<-n_distinct(cov$sampleid)
+if (nseq > 1 & nsample>1) {
+  plo+facet_grid(seqid~sampleid)
+} else if (nseq>1){
+  plo+facet_grid(seqid~.)
+}else if (nsample>1){
+  plo+facet_grid(.~sampleid)
+}
+
+ggsave("my_plot.png", plot = plo, width = 8, height = 6, dpi = 300)
 plot(plo)
 
