@@ -56,13 +56,13 @@ def prepareForPrint(se:modules.SeqEntry, sampleid:str):
             lines.append(format_col(tmp))
     
     for i in se.indellist:
-        if i.type=="del":
+        if i.type=="ins":
             # seqname, sampleid, del, pos, length, count
-            tmp=[se.seqname,sampleid,"del",str(i.pos),str(i.length),str(i.count)]
+            tmp=[se.seqname,sampleid,"ins",str(i.pos),str(i.length),str(i.count)]
             lines.append(format_col(tmp))
             # ref:str,type:str,pos:int,length:int,count
 
-        elif i.type=="ins":
+        elif i.type=="del":
             # seqname, sampleid, ins, startpos, endpos, startcov,endcov, count
                 # AAATTTCCCGGG
                 # 123456789012
@@ -73,7 +73,7 @@ def prepareForPrint(se:modules.SeqEntry, sampleid:str):
             endpos=startpos+i.length+1
             startcov=se.cov[startpos-1]
             endcov=se.cov[endpos-1]
-            tmp=[se.seqname,sampleid,"ins",str(startpos),str(endpos),str(startcov),str(endcov),str(i.count)]
+            tmp=[se.seqname,sampleid,"del",str(startpos),str(endpos),str(startcov),str(endcov),str(i.count)]
             lines.append(format_col(tmp))
 
         else:
