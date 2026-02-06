@@ -7,22 +7,22 @@ class Writer:
 
     def __init__(self,outfile):
         self.outfile=outfile
-        self.fh=None
-        self.shouldclose=False
+        self.file_handle=None
+        self.should_close=False
         if outfile is not None:
-            self.fh=open(outfile,"w")
-            self.shouldclose=True
+            self.file_handle=open(outfile,"w")
+            self.should_close=True
         
     def write(self,towrite:str):
-        if self.fh is not None:
-            self.fh.write(towrite+"\n")
+        if self.file_handle is not None:
+            self.file_handle.write(towrite+"\n")
         else:
             print(towrite)
     
     def __exit__(self):
-            if self.shouldclose and self.fh is not None:
-                self.fh.close()
-                self.fh = None
+            if self.should_close and self.file_handle is not None:
+                self.file_handle.close()
+                self.file_handle = None
 
 class SeqEntryReader:
     """
@@ -198,16 +198,16 @@ class SNP:
 
 class NormFactor:
     @classmethod
-    def getNormalizationFactor(cls, filename:str, seqending:str, minEndDistance: int, quanitle:int):
+    def getNormalizationFactor(cls, filename:str, scg_suffix:str, min_end_distance: int, quanitle:int):
         # compute the normalization factor from a seq-entry file (seq overview file so-file)
         scgs=[]
         for se in SeqEntryReader(filename):
-            if se.seqname.endswith(seqending):
+            if se.seqname.endswith(scg_suffix):
                 scgs.append(se)
 
         if len(scgs)==0:
             raise Exception("Cannot normalize without single copy genes")
-        normfactor=NormFactor.computeNormFactorForSe(scgs,minEndDistance,quanitle)
+        normfactor=NormFactor.computeNormFactorForSe(scgs,min_end_distance,quanitle)
         return normfactor
 
     @classmethod
@@ -338,7 +338,7 @@ class SeqBuilder:
             i += 1
         return ops
     
-    def __addcoverage(self,refpos: int,ops,mapq:int):
+    def __add_coverage(self,refpos: int,ops,mapq:int):
         rpos=refpos-1
         qpos=0
         ### ref     ATTTAAACCCC---AAAA
@@ -369,7 +369,7 @@ class SeqBuilder:
                 rpos += length
                 qpos += length
 
-    def __addindels(self,refpos:int,ops):
+    def __add_indels(self,refpos:int,ops):
         rpos=refpos-1
         qpos=0
         ### ref     ATTTAAACCCC---AAAA
@@ -388,7 +388,7 @@ class SeqBuilder:
                 rpos += length
                 qpos += length
 
-    def __addSNPs(self,refpos:int,ops,seq:str):
+    def __add_snps(self,refpos:int,ops,seq:str):
         ### ref     ATTTAAACCCC---AAAA
         ### que.    ATTT---CCCCTTTAAAA
         rpos=refpos-1
@@ -413,12 +413,12 @@ class SeqBuilder:
             # Ignore N (skipped reference), P (padding) if present
 
     
-    def addread(self,refpos:int,cigar:str,mapq:int,seq:str):
+    def add_read(self,refpos:int,cigar:str,mapq:int,seq:str):
 
         ops=self.__parse_cigar(cigar)
-        self.__addcoverage(refpos,ops,mapq) # increase coverage; only cigar and mapquality considered
-        self.__addindels(refpos,ops)        # add indels; only cigar considered; mapq ignored
-        self.__addSNPs(refpos,ops,seq)      # add snps; only cigar considered; mapq ignored
+        self.__add_coverage(refpos,ops,mapq) # increase coverage; only cigar and mapquality considered
+        self.__add_indels(refpos,ops)        # add indels; only cigar considered; mapq ignored
+        self.__add_snps(refpos,ops,seq)      # add snps; only cigar considered; mapq ignored
     
     def toSeqEntry(self,mcsnp,mfsnp,mcindel,mfindel):
         snplist=[]
@@ -562,8 +562,8 @@ def test_normalize():
 
 def test_Seq_Builder_add():
     sb=SeqBuilder("AAATTTCCCGGG","hans",5)
-    sb.addread(1,"3M",4,"AAA")
-    sb.addread(1,"3M",5,"TTT")
+    sb.add_read(1,"3M",4,"AAA")
+    sb.add_read(1,"3M",5,"TTT")
 
     assert sb.covar[0]==2
     assert sb.ambcovar[0]==1
@@ -580,7 +580,7 @@ def test_Seq_Builder_add():
     # AAATTT---CCCGGG
     # 123456---789012
     #    TTTAAACCC
-    sb.addread(4,"3=3I3X",5,"TTTAAACCC")
+    sb.add_read(4,"3=3I3X",5,"TTTAAACCC")
     assert sb.covar[3]==1
     assert sb.covar[4]==1
     assert sb.covar[5]==1
@@ -597,7 +597,7 @@ def test_Seq_Builder_add():
     # AAATTTCCCGGG
     # 123456789012
     #    TTT---AAA
-    sb.addread(4,"3M3D3M",5,"TTTAAA")
+    sb.add_read(4,"3M3D3M",5,"TTTAAA")
     assert sb.covar[3]==2
     assert sb.covar[4]==2
     assert sb.covar[5]==2
@@ -609,7 +609,7 @@ def test_Seq_Builder_add():
     assert sb.covar[11]==1
     assert sb.delcol[0]==(6,3), f"got {sb.delcol[0]}"
 
-    sb.addread(12,"3M",5,"TTT")
+    sb.add_read(12,"3M",5,"TTT")
 
 
     print("Quick test of SeqBuilder add PASSED ✓")

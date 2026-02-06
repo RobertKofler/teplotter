@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import argparse
-import modules
+from modules import SeqEntryReader, Writer, NormFactor
 
 
 parser = argparse.ArgumentParser(description="""           
@@ -18,11 +18,11 @@ parser.add_argument("--exclude-quantile", type=int, required=False, dest="quanti
 parser.add_argument("--output-file", type=str, required=False, dest="outfile", default=None, help="output file in so format; if none is provided output will be screen")
 
 args = parser.parse_args()
-writer=modules.Writer(args.outfile)
+writer = Writer(args.outfile)
 
 # than normalize each entry
-for se in modules.SeqEntryReader(args.seqentry):
-    avcov=modules.NormFactor.computeNormFactorForSe([se],args.enddist,args.quantile)
-    topr=[se.seqname,f"{avcov:.2f}",str(len(se.cov))]
-    tp="\t".join(topr)
+for se in SeqEntryReader(args.seqentry):
+    avcov = NormFactor.computeNormFactorForSe([se],args.enddist,args.quantile)
+    topr = [se.seqname,f"{avcov:.2f}",str(len(se.cov))]
+    tp = "\t".join(topr)
     writer.write(tp)
