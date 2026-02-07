@@ -10,8 +10,8 @@ TEplotter processes short-read alignments to extract coverage, SNP, and indel in
 
 ```
 BAM/SAM → bam2so.py → SO format → normalize-so.py → Normalized SO
-                    ↓
-                    so2plotable.py → Visualization-ready format
+                      ↓                              ↓
+                        ->                   so2plotable.py → Visualization-ready format
 ```
 
 ## Features
