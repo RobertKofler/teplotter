@@ -104,6 +104,7 @@ python so2plotable.py \
 
 Generates visualization-ready tab-delimited output with columns:
 - seqname, sampleid, feature (cov/ambcov/snp/del/ins), position, value
+Note: normalized and not-normalized SO files may be visualized! The idea is that the unmodified raw-data may be used as well as the normalized coverage adjusted to the number of reads 
 
 ### 5. Visualize
 
