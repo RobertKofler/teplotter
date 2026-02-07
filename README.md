@@ -105,6 +105,13 @@ python so2plotable.py \
 Generates visualization-ready tab-delimited output with columns:
 - seqname, sampleid, feature (cov/ambcov/snp/del/ins), position, value
 
+### 5. Visualize
+
+```bash
+Rscript visualize-plotable.R input.plotable output.png
+```
+Any other extension may be used. Importantly plotable-files from different samples may be concatenated (using cat) which will automatically invoke facetting. this allows to test in which samples copy number of TEs change
+
 ## File Formats
 
 ### Sequence Overview (SO) Format
