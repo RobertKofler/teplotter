@@ -158,6 +158,11 @@ python so2plotable.py \
   --so normalized.so \
   --sampleid my_sample \
   --output-file plotable.txt
+
+# 5. Plot
+Rscript visualize-plotable \
+   plotable.txt \
+   output.png
 ```
 
 ### Adjusting Variant Thresholds
