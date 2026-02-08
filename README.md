@@ -10,9 +10,9 @@ TEplotter processes short-read alignments to extract coverage, SNP, and indel in
 
 ```
 # visualize coverage, SNPs, indels
-BAM/SAM → bam2so.py → SO-file → normalize-so.py → So-file 
-                      ↓                              ↓
-                       →                              → so2plotable.py → plotable-file → visualize-plotable.R → png,eps,pdf,svg
+BAM/SAM → bam2so.py → SO-file → normalize-so.py → SO-file 
+                      ↓                           ↓
+                       →                           → so2plotable.py → plotable-file → visualize-plotable.R → png,eps,...
 
 
 # estimate copy numbers of TEs or any other sequence of interest
