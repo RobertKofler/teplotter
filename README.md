@@ -98,18 +98,22 @@ Outputs tab-delimited format: `seqname <tab> average_coverage <tab> length`
 ```bash
 python so2plotable.py \
   --so input.so \
-  --sampleid sample_1 \
-  --output-file plotable.txt
+  --sample-id year1933 \
+  --seq-ids gypsy,act_scg \
+  --output-file sequences.plotable or --output-dir myplotables
 ```
 
 Generates visualization-ready tab-delimited output with columns:
 - seqname, sampleid, feature (cov/ambcov/snp/del/ins), position, value
-Note: normalized and not-normalized SO files may be visualized! The idea is that the unmodified raw-data may be used as well as the normalized coverage adjusted to the number of reads 
+  
+**Note:** normalized and not-normalized SO files may be visualized! The idea is that the unmodified raw-data may be used as well as the normalized coverage adjusted to the number of reads 
+**Note:** its possible to provide '--seq-ids all', in which case all sequences will be prepared for plotting (i.e. converted into the plotable format)
+**Note:** an important design decision was that plotable entries for different samples (e.g strains collected at different years) and sequences (e.g. TEs or SCGs) can be combined freely by the user, which allows for joint visualization
 
 ### 5. Visualize
 
 ```bash
-Rscript visualize-plotable.R input.plotable output.png
+Rscript visualize-plotable.R sequences.plotable output.png
 ```
 Any other extension may be used. Importantly plotable-files from different samples may be concatenated (using cat) which will automatically invoke facetting. this allows to test in which samples copy number of TEs change
 
