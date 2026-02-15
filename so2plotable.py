@@ -15,8 +15,6 @@ def format_col(topr:list):
             tf.append("")
     return "\t".join(tf)
 
-
-
 def prepareCoveragForPrint(set:list, sampleid:str,covtype:str):
     tmp=[]
     for i,c in enumerate(set):

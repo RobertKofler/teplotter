@@ -197,6 +197,45 @@ class SNP:
     
 
 class NormFactor:
+
+    def _getCovTriplet(cov:list,qlen:int):
+        if qlen==0:
+            mcov=float(sum(cov))/float(len(cov))
+            return [mcov,None,None]
+        
+        cov.sort()
+        first=  cov[:qlen]
+        middle=  cov[qlen:-qlen]
+        last=  cov[-qlen:]
+        mfirst=float(sum(first))/float(len(first))
+        mmiddle=float(sum(middle))/float(len(middle))
+        mlast=float(sum(last))/float(len(last))
+        return [mmiddle,mfirst,mlast]
+
+
+
+    @classmethod
+    def getCovStat(cls, se, minDistance:int, quantile:int):
+        assert quantile<50 and quantile>=0
+        assert minDistance >=0
+        cov=se.cov
+        ambcov=se.ambcov
+        if minDistance>0:
+                cov=cov[minDistance:-minDistance]
+                ambcov=ambcov[minDistance:-minDistance]
+        assert len(cov)==len(ambcov)
+        if len(cov)==0:
+            return [None,]*6
+        qfrac=float(quantile)/100.0
+        qlen=int(len(cov)*qfrac)
+        covtrip=NormFactor._getCovTriplet(cov,qlen)
+        ambcovtrip=NormFactor._getCovTriplet(ambcov,qlen)
+        toret=[]
+        toret.extend(covtrip)
+        toret.extend(ambcovtrip)
+        return toret
+
+
     @classmethod
     def getNormalizationFactor(cls, filename:str, seqending:str, minEndDistance: int, quanitle:int):
         # compute the normalization factor from a seq-entry file (seq overview file so-file)
@@ -213,6 +252,7 @@ class NormFactor:
     @classmethod
     def computeNormFactorForSe(cls, seqEntries: list, minDistance:int,quantile:int):
         assert quantile<50 and quantile>=0
+        assert minDistance >=0
         # compute normalizatino factor for seq-entries
         totcoverages=[]
         for se in seqEntries:
@@ -510,6 +550,19 @@ def test_computeNormalization():
 
     print("Quick test computation of normalization factor passed ✓")
 
+def test_covstat():
+    se=SeqEntry("t",[0,2,2,2,2,2,1,2,3,2,2,0],[99,5,5,5,6,4,5,5,5,5,5,99],[],[])
+    cs=NormFactor.getCovStat(se,1,10)
+
+   
+
+    assert cs[0]==2
+    assert cs[1]==1
+    assert cs[2]==3
+    assert cs[3]==5
+    assert cs[4]==4
+    assert cs[5]==6
+    print("Quick test computations of coverage statistic passed ✓")
 
 def test_normalize():
     s=SNP("chr1",1,"A",5,6,7,1)
@@ -663,3 +716,4 @@ if __name__ == "__main__":
     test_Seq_Builder_add()
     test_normalize()
     test_computeNormalization()
+    test_covstat()

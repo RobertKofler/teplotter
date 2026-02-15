@@ -22,7 +22,14 @@ writer=modules.Writer(args.outfile)
 
 # than normalize each entry
 for se in modules.SeqEntryReader(args.seqentry):
-    avcov=modules.NormFactor.computeNormFactorForSe([se],args.enddist,args.quantile)
-    topr=[se.seqname,f"{avcov:.2f}",str(len(se.cov))]
+    cost=modules.NormFactor.getCovStat(se,args.enddist,args.quantile)
+    topr=[se.seqname,str(len(se.cov))]
+    form=[]
+    for c in cost:
+        if c is not None:
+            form.append(f"{c:.2f}",)
+        else:
+            form.append("na")
+    topr.extend(form)     
     tp="\t".join(topr)
     writer.write(tp)
