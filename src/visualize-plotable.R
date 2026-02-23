@@ -16,8 +16,8 @@ if(!debug)
   # debug 
   rm(list = ls())
   file<-"/Users/robertkofler/gh/teplotter/test2/mdg1#LTR_Gypsy_te"
+  outdir <- tempdir()
 }
-
 
 #
 # some parameters; feel free to modify
@@ -30,19 +30,12 @@ dpi=300       # plot dpi
 # end parameters
 #
 
-
-
-
-
 data <- read_tsv(file,col_names = FALSE,cols(.default = col_character()))
-
 
 # split of coverage
 cov <- data |> filter(X3== "cov")
 cov <- cov |> rename(seqid=X1,sampleid=X2,feature=X3,pos=X4,covy=X5) 
 cov <- cov |> mutate(pos = as.double(pos),covy= as.double(covy))
-
-
 
 # split of ambcoverge
 ambcov <- data |> filter(X3== "ambcov")
@@ -53,7 +46,6 @@ ambcov <- ambcov |> mutate(pos = as.double(pos),ambcovy= as.double(ambcovy))
 snp <- data |> filter(X3=="snp")
 snp <- snp |> rename(seqid=X1,sampleid=X2,feature=X3,pos=X4,refc=X5,base=X6,count=X7) 
 snp <- snp |>  mutate(pos = as.double(pos),count= as.double(count))
-
 
 # split of deletion
 deletion <- data |> filter(X3== "del")
@@ -80,7 +72,6 @@ plo<-ggplot()+
   geom_bar(data=snp,aes(x=pos,y=count,fill=base),stat="identity",width=2)+
   geom_bar(data=insertion,aes(x=pos,y=count),stat="identity",color="grey50",width=4)
 
-
 # legend position and style; 
 plo<-plo +
   theme(
@@ -93,7 +84,6 @@ plo<-plo +
     legend.background = element_rect(fill = "white", colour = "grey80"),  # optional: nicer box
     legend.margin     = margin(2, 0, 2, 0)  # reduce space around legend
   )
-
 
 # faceting
 nseq<-n_distinct(cov$seqid)
