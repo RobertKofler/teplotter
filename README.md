@@ -156,22 +156,46 @@ python run_plotable.py \
 - `--folder`: Single sample folder; each `.plotable` file is plotted independently (mutually exclusive with `--folders`)
 - `--folders`: One or more sample folders; `.plotable` files with matching names are merged before plotting (mutually exclusive with `--folder`)
 - `--outdir` / `-o`: Output directory for the generated plots. Required when `--folders` is used; defaults to the source folder when `--folder` is used.
+- `--log`: Use a logarithmic y-axis. Can be used in two ways:
+  - `--log` (no value): always use log scale
+  - `--log 1000` (with a value): automatically switch to log scale if the maximum coverage exceeds the given threshold
 
-When using `--folders`, files with the same name across directories are concatenated before being passed to the R script. This automatically triggers facetting in the visualization, making it easy to compare e.g. TE copy numbers across samples.
+**Examples:**
+```bash
+# Always use log scale
+python run_plotable.py \
+  --folder Dmel01_plottable \
+  --outdir results/ \
+  --log
+
+# Auto-switch to log scale if max coverage exceeds 1000
+python run_plotable.py \
+  --folders Dmel01_plottable Dmel02_plottable \
+  --outdir merged_results/ \
+  --log 1000
+```
 
 ### 6. Visualize
-
 ```bash
 Rscript visualize-plotable.R sequences.plotable output.png
 ```
 
 Supported output extensions include `.png`, `.pdf`, `.eps`, and `.svg`. Plotable files from different samples may also be concatenated manually and passed directly to the R script to invoke facetting:
-
 ```bash
 cat sample1.plotable sample2.plotable > combined.plotable
 Rscript visualize-plotable.R combined.plotable output.png
 ```
-**Note:** an important design decision was that plotable entries for different samples (e.g strains collected at different years) and sequences (e.g. TEs or SCGs) can be combined freely by the user, which allows for joint visualization
+
+An optional `--log` flag enables a logarithmic y-axis:
+```bash
+# Always log scale
+Rscript visualize-plotable.R sequences.plotable output.png --log
+
+# Auto-switch to log scale if max coverage exceeds 1000
+Rscript visualize-plotable.R sequences.plotable output.png --log=1000
+```
+
+**Note:** an important design decision was that plotable entries for different samples (e.g. strains collected at different years) and sequences (e.g. TEs or SCGs) can be combined freely by the user, which allows for joint visualization.
 
 ## File Formats
 
