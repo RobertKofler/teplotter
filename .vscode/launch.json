@@ -1,0 +1,29 @@
+{
+    // Verwendet IntelliSense zum Ermitteln möglicher Attribute.
+    // Zeigen Sie auf vorhandene Attribute, um die zugehörigen Beschreibungen anzuzeigen.
+    // Weitere Informationen finden Sie unter https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "normalize.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "normalize.py",
+            "console": "integratedTerminal",
+                  "args": [
+
+        "--seq-entries", "/Users/robertkofler/dev/data/Dmel01.summary"
+
+      ]
+        },
+                {
+            "name": "modules",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "src/modules.py",
+            "console": "integratedTerminal",
+            "args": []
+        }
+    ]
+}
