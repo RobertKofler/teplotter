@@ -20,7 +20,7 @@ class FileWriter:
         else:
             print(towrite)
     
-    def __exit__(self):
+    def __exit__(self, exc_type, exc_val, exc_tb):
             if self.should_close and self.file_handle is not None:
                 self.file_handle.close()
                 self.file_handle = None
@@ -107,7 +107,7 @@ class SequenceEntryReader:
         self._open_file()
         return self
 
-    def __exit__(self): 
+    def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
 
@@ -458,8 +458,8 @@ class NormFactor:
     def get_coverage_stat(cls, se, minDistance:int, quantile:int):
         assert quantile<50 and quantile>=0
         assert minDistance >=0
-        cov=se.cov
-        ambcov=se.ambcov
+        cov=se.coverage
+        ambcov=se.ambiguous_coverage
         if minDistance>0:
                 cov=cov[minDistance:-minDistance]
                 ambcov=ambcov[minDistance:-minDistance]
