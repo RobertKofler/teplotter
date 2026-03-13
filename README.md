@@ -119,7 +119,7 @@ python so2plotable.py \
   --prefix strain1_
 ```
 
-Generates visualization-ready tab-delimited output with columns: `seqname`, `sampleid`, `feature` (cov / ambcov / snp / del / ins), `position`, `value`.
+Generates visualization-ready tab-delimited output with columns: `seqname`, `sampleid`, `feature` (cov / ambcov / mcov / snp / del / ins), `position`, `value`.
 
 **Parameters:**
 - `--so`: Input SO file (required)
@@ -128,6 +128,8 @@ Generates visualization-ready tab-delimited output with columns: `seqname`, `sam
 - `--outfile`: Write all selected sequences into a single plotable file
 - `--outdir`: Write one `.plotable` file per sequence into this directory (mutually exclusive with `--outfile`)
 - `--prefix`: Filename prefix applied when using `--outdir` (only valid with `--outdir`)
+- `--mask-bed`: BED file of regions to mask (0-based coordinates); masked positions are moved from `cov` to `mcov` and excluded from SNP/indel output
+- `--mask-ymax`: Mask positions where coverage exceeds this integer value; excess coverage is capped and moved to `mcov`
 - `--log-level`: Logging verbosity (default: INFO)
 
 **Notes:**
@@ -215,6 +217,14 @@ seqname  sampleid  feature  position  value
 TE_001   sample_1  cov      1         42.5
 TE_001   sample_1  snp      100       A  T  3
 ```
+
+Feature types:
+- `cov`: per-position coverage (unmasked)
+- `ambcov`: per-position coverage from low-MAPQ (ambiguously mapping) reads
+- `mcov`: per-position masked coverage — positions masked via `--mask-bed` or `--mask-ymax`; visualized separately (e.g. in a different color) to indicate regions excluded from variant calling
+- `snp`: SNP calls (columns: seqname, sampleid, snp, pos, ref_base, alt_base, count)
+- `ins`: insertion calls (columns: seqname, sampleid, ins, pos, length, count)
+- `del`: deletion calls (columns: seqname, sampleid, del, start, end, start_cov, end_cov, count)
 
 ## Examples
 
@@ -314,7 +324,7 @@ Computes per-sequence coverage statistics (useful for copy number estimation whe
 
 ### `so2plotable.py`
 
-Transforms SO entries into a tab-delimited format suitable for visualization. Supports writing all sequences to one file or splitting into per-sequence files in an output directory.
+Transforms SO entries into a tab-delimited format suitable for visualization. Supports writing all sequences to one file or splitting into per-sequence files in an output directory. Optionally masks coverage peaks via a BED file (`--mask-bed`) or a coverage ceiling (`--mask-ymax`); masked positions are output as a separate `mcov` track and excluded from SNP/indel reporting.
 
 ### `run_plotable.py`
 

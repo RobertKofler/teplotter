@@ -62,6 +62,11 @@ ambcov <- data |> filter(X3== "ambcov")
 ambcov <- ambcov |> rename(seqid=X1,sampleid=X2,feature=X3,pos=X4,ambcovy=X5) 
 ambcov <- ambcov |> mutate(pos = as.double(pos),ambcovy= as.double(ambcovy))
 
+# split of masked coverage
+mcov <- data |> filter(X3== "mcov")
+mcov <- mcov |> rename(seqid=X1,sampleid=X2,feature=X3,pos=X4,mcovy=X5)
+mcov <- mcov |> mutate(pos = as.double(pos),mcovy= as.double(mcovy))
+
 # split of snps
 snp <- data |> filter(X3=="snp")
 snp <- snp |> rename(seqid=X1,sampleid=X2,feature=X3,pos=X4,refc=X5,base=X6,count=X7) 
@@ -77,16 +82,8 @@ insertion <- data |> filter(X3=="ins")
 insertion <- insertion |> rename(seqid=X1,sampleid=X2,feature=X3,pos=X4,length=X5,count=X6) 
 insertion <- insertion |> mutate(pos = as.double(pos), length= as.double(length), count= as.double(count))
 
-# prepare insertions
-# filter min size of insertion
-deletion<- deletion |> filter(end-start>mindeletion)
-# size of scaling
-deletion$scale=log(deletion$count)
-
-# prepare insertions
-# filter min size of insertion
+# filter minimum deletion size and scale by count
 deletion <- deletion |> filter(end - start > mindeletion)
-# size of scaling
 deletion$scale = log(deletion$count)
 
 # after cov is loaded, resolve auto log threshold
@@ -104,6 +101,7 @@ if (!is.null(log_auto_threshold)) {
 if (log_scale) {
   cov      <- cov      |> mutate(covy     = log10(covy     + 1))
   ambcov   <- ambcov   |> mutate(ambcovy  = log10(ambcovy  + 1))
+  mcov     <- mcov     |> mutate(mcovy    = log10(mcovy    + 1))
   deletion <- deletion |> mutate(startcov = log10(startcov + 1),
                                   endcov   = log10(endcov   + 1))
 }
@@ -112,6 +110,7 @@ theme_set(theme_bw())
 plo <- ggplot() +
   geom_polygon(data = cov,    mapping = aes(x = pos, y = covy),    fill = 'darkgrey',  color = 'darkgrey') +
   geom_polygon(data = ambcov, aes(x = pos, y = ambcovy),           fill = 'lightgrey', color = 'lightgrey') +
+  geom_polygon(data = mcov,   aes(x = pos, y = mcovy),             fill = 'aliceblue', color = 'aliceblue') +
   geom_curve(data = deletion, mapping = aes(x = start, y = startcov, xend = end, yend = endcov, linewidth = scale), curvature = -0.15, ncp = 5, show.legend = FALSE) +
   scale_linewidth(range = c(0.3, 2)) + xlab("position") + ylab("coverage")
 

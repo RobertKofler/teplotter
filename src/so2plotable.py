@@ -3,6 +3,29 @@ import argparse
 import logging
 from modules import SequenceEntry, SequenceEntryReader, FileWriter, NormFactor
 import os
+from collections import defaultdict
+
+def readbed(bed_path: str):
+    """
+    Reads a BED file and returns a dictionary of positions that are masked.
+    BED is 0-based coordinates.
+    """
+    result = defaultdict(lambda: defaultdict(bool))
+    if bed_path is None:
+        return result
+    with open(bed_path, 'rt') as f:
+        for line in f:
+            line = line.rstrip('\n')
+            if not line or line.startswith('#') or line.startswith('track ') or line.startswith('browser '):
+                continue
+            fields = line.split('\t')
+            assert len(fields) >= 3
+            chrom = fields[0]
+            start = int(fields[1])
+            end   = int(fields[2])
+            for pos in range(start, end + 1):
+                result[chrom][pos] = True
+    return result
 
 padto=9
 def format_col(topr:list):
@@ -34,32 +57,54 @@ def prepareCoveragForPrint(set:list, sampleid:str,covtype:str):
         topr.append(format_col(i))
     return topr
 
-def prepareForPrint(se:SequenceEntry, sampleid:str):
-    lines=[]
-    covt=prepareCoveragForPrint(se.coverage,sampleid,"cov")
-    ambcovt=prepareCoveragForPrint(se.ambiguous_coverage,sampleid,"ambcov")
+def prepareForPrint(se:SequenceEntry, sampleid:str, tomask=None, ymax=None):
+    localmask = tomask[se.sequence_name] if tomask is not None else defaultdict(bool)
+
+    cov = list(se.coverage)
+    ambcov = list(se.ambiguous_coverage)
+    mcov = [0] * len(cov)
+
+    for i in range(len(cov)):
+        c = cov[i]
+        if i in localmask:
+            ambcov[i] = 0
+            mcov[i] = cov[i]
+            cov[i] = 0
+        elif ymax is not None and c > ymax:
+            ambcov[i] = 0
+            mcov[i] = ymax
+            cov[i] = 0
+            localmask[i] = True
+
+    lines = []
+    covt = prepareCoveragForPrint(cov, sampleid, "cov")
+    ambcovt = prepareCoveragForPrint(ambcov, sampleid, "ambcov")
+    mcovt = prepareCoveragForPrint(mcov, sampleid, "mcov")
     lines.extend(covt)
     lines.extend(ambcovt)
+    lines.extend(mcovt)
 
     for s in se.snp_list:
+        if s.pos in localmask:
+            continue
         # seqname, sampleid, snp, pos, refc, ac, tc, cc, gc
-        # SNP(ref,pos,refc,ac,tc,cc,gc)
         a={"A":s.ac,"T":s.tc,"C":s.cc,"G":s.gc}
         for base,count in a.items():
             if count ==0 or base==s.refc:
                 continue
             tmp=[se.sequence_name,sampleid,"snp",str(s.pos), s.refc,base,str(count)]
             lines.append(format_col(tmp))
-    
+
     for i in se.indel_list:
         if i.type=="ins":
-            # seqname, sampleid, del, pos, length, count
+            if i.pos in localmask:
+                continue
+            # seqname, sampleid, ins, pos, length, count
             tmp=[se.sequence_name,sampleid,"ins",str(i.pos),str(i.length),str(i.count)]
             lines.append(format_col(tmp))
-            # ref:str,type:str,pos:int,length:int,count
 
         elif i.type=="del":
-            # seqname, sampleid, ins, startpos, endpos, startcov,endcov, count
+            # seqname, sampleid, del, startpos, endpos, startcov, endcov, count
                 # AAATTTCCCGGG
                 # 123456789012
                 #    TTT---AAA
@@ -67,6 +112,8 @@ def prepareForPrint(se:SequenceEntry, sampleid:str):
                 # bow from 6 to 10 (actual 0-based coverages are 5 and 9)
             startpos=i.pos
             endpos=startpos+i.length+1
+            if startpos in localmask or endpos in localmask:
+                continue
             startcov=se.coverage[startpos-1]
             endcov=se.coverage[endpos-1]
             tmp=[se.sequence_name,sampleid,"del",str(startpos),str(endpos),str(startcov),str(endcov),str(i.count)]
@@ -74,7 +121,7 @@ def prepareForPrint(se:SequenceEntry, sampleid:str):
 
         else:
             raise Exception(f"invalid type{i.type}")
-        
+
     tr="\n".join(lines)
     return tr
 
@@ -96,6 +143,8 @@ parser.add_argument("--prefix", type=str, required=False, dest="prefix", default
 parser.add_argument("--outdir", type=str, required=False, dest="outputdir", default=None, help="the output directory; a plotable will be written for each fasta entry")
 parser.add_argument("--outfile", type=str, required=False, dest="outfile", default=None, help="output file in plotable format;")
 parser.add_argument("--log-level", type=str, required=False, dest="loglevel", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)")
+parser.add_argument("--mask-bed", type=str, required=False, dest="maskbed", default=None, help="a BED file for masking; regions in the file will be masked (0-based coordinates)")
+parser.add_argument("--mask-ymax", type=int, required=False, dest="ymax", default=None, help="mask positions with coverage exceeding this value")
 
 args = parser.parse_args()
 logging.getLogger().setLevel(args.loglevel)
@@ -110,6 +159,7 @@ if args.prefix != "" and args.outputdir is None:
 
 # initialize writer
 writer=FileWriter(args.outfile)
+tomask = readbed(args.maskbed)
 
 #if no output file is provided, don't write log to screen, otherwise it will mess up the output
 if args.outfile is None:
@@ -133,7 +183,7 @@ prefix = args.prefix
 for se in SequenceEntryReader(args.so):
     if is_print_all_requested or se.sequence_name in seqset:
 
-        tp = prepareForPrint(se, args.sampleid)
+        tp = prepareForPrint(se, args.sampleid, tomask, args.ymax)
         
         if args.outputdir is not None:
             filename=se.sequence_name
