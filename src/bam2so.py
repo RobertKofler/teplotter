@@ -40,6 +40,7 @@ writer = FileWriter(args.outfile)
 reference_dict = load_fasta(args.fasta)
 
 sequence_entry_builder=None
+seen_sequences = set()
 
 infile_path = args.infile
 
@@ -78,7 +79,8 @@ for read in samfile:
             indel_min_frequency=args.mfindel)
         
         writer.write(str(seq_entry))
-        
+        seen_sequences.add(sequence_entry_builder.ref_sequence_name)
+
         ref_sequence = reference_dict[ref_name]
         sequence_entry_builder = SequenceEntryBuilder(ref_sequence, ref_name, args.min_mapq)
 
@@ -92,7 +94,10 @@ seq_entry = None
 if sequence_entry_builder is not None:
     seq_entry = sequence_entry_builder.to_SequenceEntry(args.mcsnp, args.mfsnp, args.mcindel, args.mfindel)
     writer.write(str(seq_entry))
+    seen_sequences.add(seq_entry.sequence_name)
 
-
-
- 
+for ref_name, ref_sequence in reference_dict.items():
+    if ref_name not in seen_sequences:
+        empty_builder = SequenceEntryBuilder(ref_sequence, ref_name, args.min_mapq)
+        empty_entry = empty_builder.to_SequenceEntry(args.mcsnp, args.mfsnp, args.mcindel, args.mfindel)
+        writer.write(str(empty_entry))
