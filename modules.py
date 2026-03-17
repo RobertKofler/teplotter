@@ -5,6 +5,49 @@ import re
 
 # everything 0-based
 
+
+####################################################################################
+##############             IO                              #########################
+####################################################################################
+
+
+def load_fasta(fafile):
+    entries = {}
+    current_header = None
+    current_sequence = []
+    fh=None
+    if  isinstance(fafile, TextIOBase):
+        fh=fafile
+    else:
+        fh=open(fafile,'r')
+    
+    for line in fh:
+        line = line.rstrip()  # remove trailing \n
+        
+        if line.startswith('>'):
+            # Save previous entry if exists
+            if current_header is not None:
+                seq = ''.join(current_sequence)
+                entries[current_header]=seq
+            
+            # Start new entry; get rid of >
+            current_header = line[1:]
+            # split and get rid of anything after whitespace
+            if re.search(r'\s', current_header):
+                current_header=re.split(r'\s+', current_header)[0]
+            current_sequence = []
+        elif line and current_header is not None:
+            # Add sequence line (skip empty lines)
+            current_sequence.append(line)
+    
+    # Don't forget the last entry!
+    if current_header is not None:
+        seq = ''.join(current_sequence)
+        entries[current_header]=seq
+    fh.close()
+    
+    return entries
+
 class Writer:
 
     def __init__(self,outfile):
@@ -139,64 +182,10 @@ def isssnp(refc,hash,cov,minc,minfreq):
     return False
 
 
-class Indel:
-    @classmethod
-    def parse(cls,e):
-        if len(e)!=5:
-            raise Exception(f"Cannot parse Indel {e}")
-        ref,type,pos,length,count=e[0],e[1],int(e[2]),int(e[3]),float(e[4])
-        return Indel(ref,type,pos,length,count)
- 
-    def __init__(self,ref:str,type:str,pos:int,length:int,count):
-        self.ref=ref
-        self.type=type # ins or del
-        self.pos=pos
-        self.length=length
-        self.count=count
-    
-    def __str__(self):
-        # ref, type, pos, length, count
-        tp=[self.ref, self.type, f"{self.pos}",f"{self.length}",f"{self.count:.2f}"]
-        tp="\t".join(tp)
-        return tp
-    
-    def normalize(self, normfactor:float):
-        ni=Indel(self.ref,self.type,self.pos,self.length,float(self.count)/normfactor)
-        return ni
+####################################################################################
+##############             Normalization.                  #########################
+####################################################################################
 
-
-class SNP:
-    @classmethod
-    def parse(cls,e):
-        if len(e)!=8:
-            raise Exception(f"Cannot parse SNP {e}")
-        ref,type,pos,refc,ac,tc,cc,gc =e[0],e[1],int(e[2]),e[3],float(e[4]),float(e[5]),float(e[6]),float(e[7])
-        return SNP(ref,pos,refc,ac,tc,cc,gc)
-
-
-    def __init__(self,ref:str,pos:int,refc:str,ac,tc,cc,gc):
-        self.ref=ref
-        self.pos=pos
-        self.refc=refc
-        self.ac=ac
-        self.tc=tc
-        self.gc=gc
-        self.cc=cc
-    
-    def __str__(self):
-        # ref, 'snp', pos, refc, ac tc cc gc
-        tp=[self.ref, "snp",  f"{self.pos}", self.refc,f"{self.ac:.2f}",f"{self.tc:.2f}",f"{self.cc:.2f}",f"{self.gc:.2f}"] 
-        tp="\t".join(tp)
-        return tp
-    
-    def normalize(self,normFactor:float):
-        acn=float(self.ac)/normFactor
-        tcn=float(self.tc)/normFactor
-        ccn=float(self.cc)/normFactor
-        gcn=float(self.gc)/normFactor
-        ns=SNP(self.ref,self.pos,self.refc,acn,tcn,ccn,gcn)
-        return ns
-    
 
 class NormFactor:
 
@@ -280,6 +269,76 @@ class NormFactor:
         return mean
 
 
+
+
+
+####################################################################################
+##############             SeqEntry + Indel SNP            #########################
+####################################################################################
+
+
+class Indel:
+    @classmethod
+    def parse(cls,e):
+        if len(e)!=5:
+            raise Exception(f"Cannot parse Indel {e}")
+        ref,type,pos,length,count=e[0],e[1],int(e[2]),int(e[3]),float(e[4])
+        return Indel(ref,type,pos,length,count)
+ 
+    def __init__(self,ref:str,type:str,pos:int,length:int,count):
+        self.ref=ref
+        self.type=type # ins or del
+        self.pos=pos
+        self.length=length
+        self.count=count
+    
+    def __str__(self):
+        # ref, type, pos, length, count
+        tp=[self.ref, self.type, f"{self.pos}",f"{self.length}",f"{self.count:.2f}"]
+        tp="\t".join(tp)
+        return tp
+    
+    def normalize(self, normfactor:float):
+        ni=Indel(self.ref,self.type,self.pos,self.length,float(self.count)/normfactor)
+        return ni
+
+
+class SNP:
+    @classmethod
+    def parse(cls,e):
+        if len(e)!=8:
+            raise Exception(f"Cannot parse SNP {e}")
+        ref,type,pos,refc,ac,tc,cc,gc =e[0],e[1],int(e[2]),e[3],float(e[4]),float(e[5]),float(e[6]),float(e[7])
+        return SNP(ref,pos,refc,ac,tc,cc,gc)
+
+
+    def __init__(self,ref:str,pos:int,refc:str,ac,tc,cc,gc):
+        self.ref=ref
+        self.pos=pos
+        self.refc=refc
+        self.ac=ac
+        self.tc=tc
+        self.gc=gc
+        self.cc=cc
+    
+    def __str__(self):
+        # ref, 'snp', pos, refc, ac tc cc gc
+        tp=[self.ref, "snp",  f"{self.pos}", self.refc,f"{self.ac:.2f}",f"{self.tc:.2f}",f"{self.cc:.2f}",f"{self.gc:.2f}"] 
+        tp="\t".join(tp)
+        return tp
+    
+    def normalize(self,normFactor:float):
+        acn=float(self.ac)/normFactor
+        tcn=float(self.tc)/normFactor
+        ccn=float(self.cc)/normFactor
+        gcn=float(self.gc)/normFactor
+        ns=SNP(self.ref,self.pos,self.refc,acn,tcn,ccn,gcn)
+        return ns
+    
+
+
+
+
 class SeqEntry:
 
     @classmethod 
@@ -351,6 +410,11 @@ class SeqEntry:
         for i in self.indellist:
             indellist.append(i.normalize(normfactor))
         return SeqEntry(self.seqname,cov,ambcov,snplist,indellist)
+
+
+####################################################################################
+##############             Seqbuilder.                     #########################
+####################################################################################
 
 
 class SeqBuilder:
@@ -501,42 +565,16 @@ class SeqBuilder:
 
         
 
-def load_fasta(fafile):
-    entries = {}
-    current_header = None
-    current_sequence = []
-    fh=None
-    if  isinstance(fafile, TextIOBase):
-        fh=fafile
-    else:
-        fh=open(fafile,'r')
-    
-    for line in fh:
-        line = line.rstrip()  # remove trailing \n
-        
-        if line.startswith('>'):
-            # Save previous entry if exists
-            if current_header is not None:
-                seq = ''.join(current_sequence)
-                entries[current_header]=seq
-            
-            # Start new entry; get rid of >
-            current_header = line[1:]
-            # split and get rid of anything after whitespace
-            if re.search(r'\s', current_header):
-                current_header=re.split(r'\s+', current_header)[0]
-            current_sequence = []
-        elif line and current_header is not None:
-            # Add sequence line (skip empty lines)
-            current_sequence.append(line)
-    
-    # Don't forget the last entry!
-    if current_header is not None:
-        seq = ''.join(current_sequence)
-        entries[current_header]=seq
-    fh.close()
-    
-    return entries
+
+
+
+
+####################################################################################
+##############             Plotable formater               #########################
+####################################################################################
+
+
+
 ####################################################################################
 ##############             TESTS                           #########################
 ####################################################################################
