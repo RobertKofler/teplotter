@@ -81,7 +81,7 @@ theme_set(theme_bw())
 plo<-ggplot()+
   geom_polygon(data = cov, mapping = aes(x = pos, y = covy), fill = 'grey', color = 'grey') +
   geom_polygon(data = ambcov, aes(x = pos, y = ambcovy), fill = 'lightgrey', color = 'lightgrey')+
-  geom_polygon(data = mcov, aes(x = pos, y = mcovy), fill = 'aliceblue', color = 'aliceblue')+
+  geom_polygon(data = mcov, aes(x = pos, y = mcovy), fill = 'lavender', color = 'lavender')+
   geom_curve(data = deletion, mapping = aes(x = start, y = startcov, xend = end, yend = endcov, linewidth = scale),  curvature = -0.15, ncp=5,show.legend = FALSE)+
   scale_linewidth(range = c(0.3, 2))+xlab("position") + ylab("coverage")+
   geom_bar(data=snp,aes(x=pos,y=count,fill=base),stat="identity",width=2)+
