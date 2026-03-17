@@ -683,9 +683,10 @@ class PlotableFormater:
 
             else:
                 raise Exception(f"invalid type{i.type}")
+        return toret
 
     @classmethod
-    def prepareForPrint(cls, se:SeqEntry, sampleid:str,tomask,ymax):
+    def prepareForPrint(cls, se: SeqEntry, sampleid:str,tomask,ymax):
         # get local masking
         localmask=tomask[se.seqname] # bed is 0-based
         # coverages and mask according to user specifications

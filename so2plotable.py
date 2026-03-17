@@ -31,81 +31,7 @@ def format_col(topr:list):
 
 
 
-def prepareForPrint(se:SeqEntry, sampleid:str,tomask,ymax):
-    # get local masking
-    localmask=tomask[se.seqname] # bed is 0-based
-    # coverages and mask according to user specifications
-    cov=se.cov
-    ambcov=se.ambcov
-    mcov=[0]*len(cov)
- 
-    for i in range(0,len(cov)):
-        c=cov[i]
-         # mask coverage if either in localmaks or coverage exceeds ymax
-        if (i in localmask):
-            ambcov[i]=0
-            mcov[i]=cov[i]
-            cov[i]=0
-        elif ymax is not None and c>ymax:
-            ambcov[i]=0
-            mcov[i]=ymax
-            cov[i]=0
-            localmask[i]=True
 
-    lines=[]
-    covt=prepareCoveragForPrint(s ,cov,sampleid,"cov")
-    ambcovt=prepareCoveragForPrint(ambcov,sampleid,"ambcov")
-    mcovt=prepareCoveragForPrint(mcov,sampleid,"mcov")
-    lines.extend(covt)
-    lines.extend(ambcovt)
-    lines.extend(mcovt)
-
-
-
-    for s in se.snplist:
-        if s.pos in localmask:
-            continue
-        # seqname, sampleid, snp, pos, refc, ac, tc, cc, gc
-        # SNP(ref,pos,refc,ac,tc,cc,gc)
-        a={"A":s.ac,"T":s.tc,"C":s.cc,"G":s.gc}
-        for base,count in a.items():
-            if count ==0 or base==s.refc:
-                continue
-            tmp=[se.seqname,sampleid,"snp",str(s.pos), s.refc,base,str(count)]
-            lines.append(format_col(tmp))
-    
-    for i in se.indellist:
-
-
-        if i.type=="ins":
-            if i.pos in localmask:
-                continue
-            # seqname, sampleid, del, pos, length, count
-            tmp=[se.seqname,sampleid,"ins",str(i.pos),str(i.length),str(i.count)]
-            lines.append(format_col(tmp))
-            # ref:str,type:str,pos:int,length:int,count
-
-        elif i.type=="del":
-            # seqname, sampleid, ins, startpos, endpos, startcov,endcov, count
-                # AAATTTCCCGGG
-                # 123456789012
-                #    TTT---AAA
-                # pos = 6 and len = 3
-                # bow from 6 to 10 (actual 0-based coverages are 5 and 9)
-            startpos=i.pos
-            endpos=startpos+i.length+1
-            if startpos in localmask or endpos in localmask:
-                continue
-            startcov=se.cov[startpos-1]
-            endcov=se.cov[endpos-1]
-            tmp=[se.seqname,sampleid,"del",str(startpos),str(endpos),str(startcov),str(endcov),str(i.count)]
-            lines.append(format_col(tmp))
-
-        else:
-            raise Exception(f"invalid type{i.type}")
-        
-
-    return lines
 
 
 parser = argparse.ArgumentParser(description="""           
@@ -146,9 +72,9 @@ if args.seqids.lower() == "all":
 
 for se in SeqEntryReader(args.so):
     if printall or se.seqname in seqset:
-        tmp=prepareForPrint(se,args.sampleid,tomask,args.ymax)
+        tmp=PlotableFormater.prepareForPrint(se,args.sampleid,tomask,args.ymax)
         tr=[format_col(i) for i in tmp] # final formatting step; padding
-        tp="\n".join(tp)
+        tp="\n".join(tr)
 
         if args.outputdir is not None:
             filename=se.seqname

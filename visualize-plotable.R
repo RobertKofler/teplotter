@@ -51,7 +51,7 @@ ambcov <- ambcov |> mutate(pos = as.double(pos),ambcovy= as.double(ambcovy))
 
 # split of mcov
 mcov <- data |> filter(X3== "mcov")
-mcov <- mcov |> rename(seqid=X1,sampleid=X2,feature=X3,pos=X4,mcov=X5) 
+mcov <- mcov |> rename(seqid=X1,sampleid=X2,feature=X3,pos=X4,mcovy=X5) 
 mcov <- mcov |> mutate(pos = as.double(pos),mcovy= as.double(mcovy))
 
 
@@ -81,7 +81,7 @@ theme_set(theme_bw())
 plo<-ggplot()+
   geom_polygon(data = cov, mapping = aes(x = pos, y = covy), fill = 'grey', color = 'grey') +
   geom_polygon(data = ambcov, aes(x = pos, y = ambcovy), fill = 'lightgrey', color = 'lightgrey')+
-  geom_polygon(data = mcov, aes(x = pos, y = mcov), fill = 'aliceblue', color = 'aliceblue')+
+  geom_polygon(data = mcov, aes(x = pos, y = mcovy), fill = 'aliceblue', color = 'aliceblue')+
   geom_curve(data = deletion, mapping = aes(x = start, y = startcov, xend = end, yend = endcov, linewidth = scale),  curvature = -0.15, ncp=5,show.legend = FALSE)+
   scale_linewidth(range = c(0.3, 2))+xlab("position") + ylab("coverage")+
   geom_bar(data=snp,aes(x=pos,y=count,fill=base),stat="identity",width=2)+
