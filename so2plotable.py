@@ -1,36 +1,10 @@
 #!/usr/bin/env python
 import argparse
-import modules
 import os
 from collections import defaultdict
+from modules import PlotableFormater,Writer,SeqEntryReader, load_bed
 
-def readbed(bed_path: str):
-    """
-    Reads a BED file and returns a dictionary of positions that are present in the file.
-    bed is 0-based coordinates
-    """
 
-    # Using defaultdict(dict) for clean nested structure
-    result = defaultdict(lambda: defaultdict(bool))
-    if bed_path is None:
-        return result
-    
-    with open(bed_path, 'rt') as f:   
-        for line in f:
-            line = line.rstrip('\n')
-            if not line or line.startswith('#') or line.startswith('track ') or line.startswith('browser '):
-                continue
-                
-            fields = line.split('\t')
-            assert len(fields)>=3
-            chrom = fields[0]
-            start = int(fields[1])
-            end   = int(fields[2])
-
-            # BED is [start, end) → we include all positions from start inclusive to end inclusive
-            for pos in range(start, end+1):
-                result[chrom][pos] = True
-    return result
 
 
 
@@ -53,36 +27,11 @@ def format_col(topr:list):
             tf.append("")
     return "\t".join(tf)
 
-def prepareCoveragForPrint(set:list, sampleid:str,covtype:str):
-    """
-    print the coverage a list of coverages
-    
-    :param set: the coverages to be printed
-    :type set: list
-    :param sampleid: the sample id
-    :type sampleid: str
-    :param covtype: the type of coverage; eg cov, ambcov, mcov 
-    :type covtype: str
-    """
-    tmp=[]
-    for i,c in enumerate(set):
-        # seqname, sampleid, cov, pos, count
-        t=[se.seqname,sampleid,covtype,str(i+1),str(c)]
-        tmp.append(t)
-       
-    first,last=tmp[0],tmp[-1]
-    newfirst=[first[0],first[1],first[2],first[3],"0.0"]
-    newlast=[last[0],last[1],last[2],last[3],"0.0"]
-    tmp.insert(0,newfirst)
-    tmp.append(newlast)
-
-    topr=[]
-    for i in tmp:
-        topr.append(format_col(i))
-    return topr
 
 
-def prepareForPrint(se:modules.SeqEntry, sampleid:str,tomask,ymax):
+
+
+def prepareForPrint(se:SeqEntry, sampleid:str,tomask,ymax):
     # get local masking
     localmask=tomask[se.seqname] # bed is 0-based
     # coverages and mask according to user specifications
@@ -104,7 +53,7 @@ def prepareForPrint(se:modules.SeqEntry, sampleid:str,tomask,ymax):
             localmask[i]=True
 
     lines=[]
-    covt=prepareCoveragForPrint(cov,sampleid,"cov")
+    covt=prepareCoveragForPrint(s ,cov,sampleid,"cov")
     ambcovt=prepareCoveragForPrint(ambcov,sampleid,"ambcov")
     mcovt=prepareCoveragForPrint(mcov,sampleid,"mcov")
     lines.extend(covt)
@@ -155,8 +104,8 @@ def prepareForPrint(se:modules.SeqEntry, sampleid:str,tomask,ymax):
         else:
             raise Exception(f"invalid type{i.type}")
         
-    tr="\n".join(lines)
-    return tr
+
+    return lines
 
 
 parser = argparse.ArgumentParser(description="""           
@@ -180,9 +129,9 @@ args = parser.parse_args()
 if args.outfile is not None and args.outputdir is not None:
     raise Exception("invalid parameters; either provide output-dir or output-file; not both")
 # initialize writer
-writer=modules.Writer(args.outfile)
+writer=Writer(args.outfile)
 
-tomask = readbed(args.maskbed) # 0-based; bed is 0-based
+tomask = load_bed(args.maskbed) # 0-based; bed is 0-based
 
 
 seqset=None
@@ -195,9 +144,12 @@ if args.seqids.lower() == "all":
     printall=True
 
 
-for se in modules.SeqEntryReader(args.so):
+for se in SeqEntryReader(args.so):
     if printall or se.seqname in seqset:
-        tp=prepareForPrint(se,args.sampleid,tomask,args.ymax)
+        tmp=prepareForPrint(se,args.sampleid,tomask,args.ymax)
+        tr=[format_col(i) for i in tmp] # final formatting step; padding
+        tp="\n".join(tp)
+
         if args.outputdir is not None:
             filename=se.seqname
             filename=filename.replace("/","_")

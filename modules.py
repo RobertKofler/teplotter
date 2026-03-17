@@ -10,6 +10,33 @@ import re
 ##############             IO                              #########################
 ####################################################################################
 
+def load_bed(bed_path: str):
+    """
+    Reads a BED file and returns a dictionary of positions that are present in the file.
+    bed is 0-based coordinates
+    """
+
+    # Using defaultdict(dict) for clean nested structure
+    result = defaultdict(lambda: defaultdict(bool))
+    if bed_path is None:
+        return result
+    
+    with open(bed_path, 'rt') as f:   
+        for line in f:
+            line = line.rstrip('\n')
+            if not line or line.startswith('#') or line.startswith('track ') or line.startswith('browser '):
+                continue
+                
+            fields = line.split('\t')
+            assert len(fields)>=3
+            chrom = fields[0]
+            start = int(fields[1])
+            end   = int(fields[2])
+
+            # BED is [start, end) → we include all positions from start inclusive to end inclusive
+            for pos in range(start, end+1):
+                result[chrom][pos] = True
+    return result
 
 def load_fasta(fafile):
     entries = {}
@@ -572,8 +599,127 @@ class SeqBuilder:
 ####################################################################################
 ##############             Plotable formater               #########################
 ####################################################################################
+####  ATTENTION ATTENTION ATTENTION ATTENTION ATTENTION ATTENTION ATTENTION ########
+####  ATTENTION ATTENTION ATTENTION ATTENTION ATTENTION ATTENTION ATTENTION ########
+###### 1-based output for R.    1-based output for R.    1-based output for R ######
+####  ATTENTION ATTENTION ATTENTION ATTENTION ATTENTION ATTENTION ATTENTION ########
+###### 1-based output for R.    1-based output for R.    1-based output for R ######
 
+class PlotableFormater:
 
+    ####################################################################################
+    #### offset switching from 0-based to 1-based
+    offset=1
+    
+    @classmethod
+    def prepareCoveragForPrint(cls,seqname:str,set:list, sampleid:str,covtype:str):
+        """
+        print the coverage a list of coverages
+        """
+        tmp=[]
+        for i,c in enumerate(set):
+            # seqname, sampleid, cov, pos, count
+            t=[seqname,sampleid,covtype,str(i+PlotableFormater.offset),str(c)]
+            tmp.append(t)
+        
+        # R-polygon necessity
+        first,last=tmp[0],tmp[-1]
+        newfirst=[first[0],first[1],first[2],first[3],"0.0"]
+        newlast=[last[0],last[1],last[2],last[3],"0.0"]
+        tmp.insert(0,newfirst)
+        tmp.append(newlast)
+        return tmp
+    
+    @classmethod
+    def prepareSNPForPrint(cls, se:SeqEntry, sampleid:str,tomask):
+        toret=[]
+        for s in se.snplist:
+            if s.pos in tomask:
+                continue
+            # seqname, sampleid, snp, pos, refc, ac, tc, cc, gc
+            # SNP(ref,pos,refc,ac,tc,cc,gc)
+            a={"A":s.ac,"T":s.tc,"C":s.cc,"G":s.gc}
+            for base,count in a.items():
+                if count ==0 or base==s.refc:
+                    continue
+                tmp=[se.seqname,sampleid,"snp",str(s.pos+PlotableFormater.offset), s.refc,base,str(count)]
+                toret.append(tmp)
+        return toret
+    
+    @classmethod
+    def prepareIndelForPrint(cls, se:SeqEntry, sampleid:str,tomask):
+        toret=[]
+        for i in se.indellist:
+            if i.type=="ins":
+                # 123456---789012
+                # 012345---678901 0-based = (6,3) insertions
+                # AAATTT---CCCGGG  
+                #    TTTAAACCC
+                if i.pos in tomask:
+                    continue
+                # seqname, sampleid, del, pos, length, count
+                # intentionally not using PlotableFormater.offset since I think first coordindate of insertion is better 
+                tmp=[se.seqname,sampleid,"ins",str(i.pos),str(i.length),str(i.count)] 
+                toret.append(tmp)
+                # ref:str,type:str,pos:int,length:int,count
+
+            elif i.type=="del":
+                # 123456890123
+                # 012345678901.  0-based = (6,3) deletion
+                # AAATTTCCCGGG
+                #    TTT---AAA
+                # seqname, sampleid, ins, startpos, endpos, startcov,endcov, count
+ 
+                startpos=i.pos # eg 6
+                endpos=startpos+i.length # eg 9 = 6+3
+                if startpos in tomask or endpos in tomask:
+                    continue
+                startcov=se.cov[startpos-1] # startcov at 5 = 6-1
+                endcov=se.cov[endpos]   # endcov at 9
+                
+                # note startpos does not get PlottableFormat.offset on purpose! endpos needs offset
+                tmp=[se.seqname,sampleid,"del",str(startpos),str(endpos+PlotableFormater.offset),str(startcov),str(endcov),str(i.count)]
+                toret.append(tmp)
+
+            else:
+                raise Exception(f"invalid type{i.type}")
+
+    @classmethod
+    def prepareForPrint(cls, se:SeqEntry, sampleid:str,tomask,ymax):
+        # get local masking
+        localmask=tomask[se.seqname] # bed is 0-based
+        # coverages and mask according to user specifications
+        cov=se.cov
+        ambcov=se.ambcov
+        mcov=[0]*len(cov)
+    
+        for i in range(0,len(cov)):
+            c=cov[i]
+            # mask coverage if either in localmaks or coverage exceeds ymax
+            if (i in localmask):
+                ambcov[i]=0
+                mcov[i]=cov[i]
+                cov[i]=0
+            elif ymax is not None and c>ymax:
+                ambcov[i]=0
+                mcov[i]=ymax
+                cov[i]=0
+                localmask[i]=True
+
+        lines=[]
+        covt=PlotableFormater.prepareCoveragForPrint(se.seqname ,cov,sampleid,"cov")
+        ambcovt=PlotableFormater.prepareCoveragForPrint(se.seqname,ambcov,sampleid,"ambcov")
+        mcovt=PlotableFormater.prepareCoveragForPrint(se.seqname,mcov,sampleid,"mcov")
+        lines.extend(covt)
+        lines.extend(ambcovt)
+        lines.extend(mcovt)
+        
+        snps=PlotableFormater.prepareSNPForPrint(se,sampleid,localmask)
+        lines.extend(snps)
+        indels=PlotableFormater.prepareIndelForPrint(se,sampleid,localmask)
+        lines.extend(indels)
+
+        return lines
 
 ####################################################################################
 ##############             TESTS                           #########################
@@ -697,8 +843,8 @@ def test_getInsertion():
 def test_getDeletion():
     # toSeqEntry(self,mcsnp,mfsnp,mcindel,mfindel):
     sb=SeqBuilder("AAATTTCCCGGG","hans",5)
-    # 123456---789012
-    # 012345---678901.  0-based = (6,3) deletion
+    # 123456890123
+    # 012345678901.  0-based = (6,3) deletion
     # AAATTTCCCGGG
     #    TTT---AAA
     sb.add_read(3,"3M3D3M",5,"TTTAAA")
