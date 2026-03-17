@@ -21,7 +21,7 @@
             "name": "modules",
             "type": "debugpy",
             "request": "launch",
-            "program": "src/modules.py",
+            "program": "modules.py",
             "console": "integratedTerminal",
             "args": []
         }

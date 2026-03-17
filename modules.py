@@ -478,7 +478,7 @@ class SeqBuilder:
             tmp[ins]+=1
         for ins,count in tmp.items():
             pos=ins[0] # -1 # position in ins is 0-based everything
-            cov=self.covar[pos]
+            cov=self.covar[pos-1]
             insfreq=float(count)/float(cov)
             if count>=mcindel and insfreq>=mfindel:
                 id=Indel(self.seqname,"ins",ins[0],ins[1],count)
@@ -490,7 +490,7 @@ class SeqBuilder:
             tmp[de]+=1
         for de,count in tmp.items():
             pos=de[0] # -1 # 0-based everything
-            cov=self.covar[pos]
+            cov=self.covar[pos-1]
             defreq=float(count)/float(cov)
             if count>=mcindel and defreq>=mfindel:
                 id=Indel(self.seqname,"del",de[0],de[1],count)
@@ -537,6 +537,10 @@ def load_fasta(fafile):
     fh.close()
     
     return entries
+####################################################################################
+##############             TESTS                           #########################
+####################################################################################
+
 
 def test_computeNormalization():
     # todo add tests for quantiles
@@ -552,11 +556,10 @@ def test_computeNormalization():
 
     print("Quick test computation of normalization factor passed ✓")
 
+
 def test_covstat():
     se=SeqEntry("t",[0,2,2,2,2,2,1,2,3,2,2,0],[99,5,5,5,6,4,5,5,5,5,5,99],[],[])
     cs=NormFactor.getCovStat(se,1,10)
-
-   
 
     assert cs[0]==2
     assert cs[1]==1
@@ -613,6 +616,64 @@ def test_normalize():
     print("Quick test of SeqEntry normalization PASSED ✓")
 
 
+def test_getSNP():
+    # toSeqEntry(self,mcsnp,mfsnp,mcindel,mfindel):
+    sb=SeqBuilder("AAATTTCCCGGG","hans",5)
+    sb.add_read(0,"3M",5,"AAT")
+    sb.add_read(0,"3M",5,"AAT")
+    sb.add_read(0,"3M",5,"TAT")
+    sb.add_read(0,"3M",5,"TCT")
+    se=sb.toSeqEntry(2,0.1,2,0.1)
+
+    assert len(se.snplist)==2
+    assert se.snplist[0].pos==0
+    assert se.snplist[0].ac==2
+    assert se.snplist[0].tc==2
+    assert se.snplist[1].pos==2
+    assert se.snplist[1].ac==0
+    assert se.snplist[1].tc==4
+    b=0
+    print("Quick test of SNP calling PASSED ✓")
+
+
+def test_getInsertion():
+    # toSeqEntry(self,mcsnp,mfsnp,mcindel,mfindel):
+    sb=SeqBuilder("AAATTTCCCGGG","hans",5)
+    # 123456---789012
+    # 012345---678901 0-based = (6,3) insertions
+    # AAATTT---CCCGGG  
+    #    TTTAAACCC
+    sb.add_read(3,"3M3I3M",5,"TTTAAACCC")
+    sb.add_read(3,"3M3I3M",5,"TTTAAACCC")
+    se=sb.toSeqEntry(2,0.1,2,0.1)
+
+    assert len(se.indellist)==1
+    assert se.indellist[0].pos==6
+    assert se.indellist[0].length==3
+    assert se.indellist[0].count==2
+    assert se.indellist[0].type=="ins"
+    b=0
+    print("Quick test of Insertion calling PASSED ✓")
+
+
+def test_getDeletion():
+    # toSeqEntry(self,mcsnp,mfsnp,mcindel,mfindel):
+    sb=SeqBuilder("AAATTTCCCGGG","hans",5)
+    # 123456---789012
+    # 012345---678901.  0-based = (6,3) deletion
+    # AAATTTCCCGGG
+    #    TTT---AAA
+    sb.add_read(3,"3M3D3M",5,"TTTAAA")
+    sb.add_read(2,"4M3D3M",5,"TTTTAAA")
+    sb.add_read(3,"3M3D3M",5,"TTTAAC")
+    se=sb.toSeqEntry(2,0.1,2,0.1)
+
+    assert len(se.indellist)==1
+    assert se.indellist[0].pos==6
+    assert se.indellist[0].length==3
+    assert se.indellist[0].count==3
+    assert se.indellist[0].type=="del"
+    print("Quick test of Deletion calling PASSED ✓")
 
 
 def test_Seq_Builder_add():
@@ -621,8 +682,8 @@ def test_Seq_Builder_add():
     # AAA
     # TTT
     sb=SeqBuilder("AAATTTCCCGGG","hans",5)
-    sb.add_read(0,"3M",4,"AAA")
-    sb.add_read(0,"3M",5,"TTT")
+    sb.add_read(0,"3M",4,"ACC")
+    sb.add_read(0,"3M",5,"TGG")
 
     assert sb.covar[0]==2
     assert sb.ambcovar[0]==1
@@ -669,7 +730,6 @@ def test_Seq_Builder_add():
     assert sb.delcol[0]==(6,3), f"got {sb.delcol[0]}"
 
     sb.add_read(11,"3M",5,"TTT")
-
 
     print("Quick test of SeqBuilder add PASSED ✓")
 
@@ -723,3 +783,6 @@ if __name__ == "__main__":
     test_normalize()
     test_computeNormalization()
     test_covstat()
+    test_getSNP()
+    test_getInsertion()
+    test_getDeletion()
