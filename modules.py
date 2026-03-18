@@ -678,6 +678,7 @@ class PlotableFormater:
                 endcov=se.cov[endpos]   # endcov at 9
                 
                 # note startpos does not get PlottableFormat.offset on purpose! endpos needs offset
+                # desired startpos in 1-based = 6; endpos = 10
                 tmp=[se.seqname,sampleid,"del",str(startpos),str(endpos+PlotableFormater.offset),str(startcov),str(endcov),str(i.count)]
                 toret.append(tmp)
 
@@ -961,6 +962,66 @@ ATGCATGCATGC
     
     print("Quick test of fasta_loader PASSED ✓")
 
+def test_convert_to_portable():
+    # (self,seqname:str,cov,ambcov,snplist,indellist):
+    se=SeqEntry("tr1",[],[],[],[])
+    se.snplist.append(SNP("t",100,"A",2,3,4,0))
+    sl=PlotableFormater.prepareSNPForPrint(se,"tamtam",{})
+
+    assert len(sl)==2
+    assert sl[0][3]=="101" # conversion 100->101 R is 1-based
+    assert sl[0][6]=="3"
+    assert sl[1][3]=="101" # conversion 100->101 R is 1-based
+    assert sl[1][6]=="4"  
+
+
+    se=SeqEntry("tr1",[],[],[],[])
+    se.indellist.append(Indel("t","ins",200,3,10))
+    ins = PlotableFormater.prepareIndelForPrint(se,"tamtam",{})
+    assert len(ins)==1
+    assert ins[0][3]=="200" # conversion of 200 -> 200 (position is now one position before insertion; instead of 1 position after insertion)
+    
+    # (self,seqname:str,cov,ambcov,snplist,indellist):
+    se=SeqEntry("tr1",[i for i in range(1000,1400)],[],[],[])
+    se.indellist.append(Indel("t","del",300,10,20))
+    dele = PlotableFormater.prepareIndelForPrint(se,"tamtam",{})
+    assert len(dele)==1
+    assert dele[0][3]=="300" # conversion of 300 -> 300 # i want first coordinate before deletion 1-based
+    assert dele[0][4]=="311" # conversion of 310 -> 311  # i want frst coordinate after deletion 1-based
+    
+
+    cov=PlotableFormater.prepareCoveragForPrint("hans",[20,30],"sepp","cov")
+    assert len(cov)==4 
+    assert cov[0][3]=="1"
+    assert cov[3][3]=="2"
+
+    print("Test convert to portable PASSED ✓")
+
+def test_filter_portable():
+    # (self,seqname:str,cov,ambcov,snplist,indellist):
+    se=SeqEntry("tr1",[],[],[],[])
+    se.snplist.append(SNP("t",11,"A",2,3,0,0))
+    se.snplist.append(SNP("t",12,"A",2,3,0,0))
+    se.snplist.append(SNP("t",13,"A",2,3,0,0))
+    sl=PlotableFormater.prepareSNPForPrint(se,"tamtam",{12:True})
+
+    b=0
+    assert len(sl)==2
+    assert sl[0][3]=="12" # 11 +1 (remember conversion from 0-based to 1-based)
+    assert sl[1][3]=="14" # 13+1 
+    # hence 12+1 should be missing; check
+
+    se=SeqEntry("tr1",[],[],[],[])
+    se.indellist.append(Indel("t","ins",111,3,10))
+    se.indellist.append(Indel("t","ins",112,3,10))
+    se.indellist.append(Indel("t","ins",113,3,10))
+    ins = PlotableFormater.prepareIndelForPrint(se,"tamtam",{112:True})
+    assert len(ins)==2
+    assert ins[0][3]=="111" 
+    assert ins[1][3]=="113" 
+    print("Test filter portable PASSED ✓")
+    
+
 if __name__ == "__main__":
     test_fasta_loader()
     test_Seq_Builder_init()
@@ -971,3 +1032,5 @@ if __name__ == "__main__":
     test_getSNP()
     test_getInsertion()
     test_getDeletion()
+    test_convert_to_portable()
+    test_filter_portable()
