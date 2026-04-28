@@ -1,14 +1,14 @@
-# TEplotter
+# SeqVista
 
 A Python toolkit for converting BAM/SAM alignment files to sequence overview (SO) format, with support for variant detection (SNPs, indels), coverage normalization, and visualization-ready outputs.
 
 ## Overview
 
-TEplotter processes short-read alignments to extract coverage, SNP, and indel information for each reference sequence. It's particularly useful for analyzing genomic regions of interest (e.g. TEs, genes, symbionts) and their coverage and variation.
+SeqVista processes short-read alignments to extract coverage, SNP, and indel information for each reference sequence. It's particularly useful for analyzing genomic regions of interest (e.g. TEs, genes, symbionts) and their coverage and variation.
 
 ### Workflow
 
-![TEplotter Pipeline](img/TEplotter_pipeline.png)
+![SeqVista Pipeline](img/SeqVista_pipeline.png)
 
 ## Features
 
@@ -390,7 +390,7 @@ TODO
 
 ## Citation
 
-If you use TEplotter in your research, please cite:
+If you use SeqVista in your research, please cite:
 ```
 TODO
 ```
