@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 import argparse
-from modules import SequenceEntryReader, NormFactor, FileWriter
+from modules import SeqEntryReader, NormFactor, Writer
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-parser = argparse.ArgumentParser(description="""           
+parser = argparse.ArgumentParser(description="""
 normalizes the coverage for seqentries
 """,formatter_class=argparse.RawDescriptionHelpFormatter,
 epilog="""
@@ -28,15 +28,15 @@ logging.getLogger().setLevel(args.loglevel)
 if args.outfile is None:
     logging.getLogger().setLevel("ERROR")
 
-writer = FileWriter(args.outfile)
+writer = Writer(args.outfile)
 # first get the normalization factor
-normfactor = NormFactor.compute_normalization_factor_for_file(args.seqentry, args.scgend ,args.enddist, args.quantile)
+normfactor = NormFactor.getNormalizationFactor(args.seqentry, args.scgend ,args.enddist, args.quantile)
 
 if normfactor == 0:
     logging.error("Normalization factor is zero. This may indicate that no single copy genes were found or that the coverage is zero or very low. Please check your input data.")
     exit(1)
 
 # than normalize each entry
-for se in SequenceEntryReader(args.seqentry):
+for se in SeqEntryReader(args.seqentry):
     sen = se.normalize(normfactor)
     writer.write(str(sen))

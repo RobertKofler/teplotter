@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 import argparse
 import logging
-from modules import SequenceEntryReader, FileWriter, NormFactor
+from modules import SeqEntryReader, Writer, NormFactor
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-parser = argparse.ArgumentParser(description="""           
+parser = argparse.ArgumentParser(description="""
 estimates the average coverage for each sequence overview entry;
 notably, the average coverage corresponds to the copy number if the coverage is normalized to the coverage of single copy genes
 """,formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -30,18 +30,18 @@ logging.getLogger().setLevel(args.loglevel)
 if args.outfile is None:
     logging.getLogger().setLevel("ERROR")
 
-writer = FileWriter(args.outfile)
+writer = Writer(args.outfile)
 
 # than normalize each entry
-for se in SequenceEntryReader(args.seqentry):
-    cost=NormFactor.get_coverage_stat(se,args.enddist,args.quantile)
-    topr=[se.sequence_name,str(len(se.coverage))]
+for se in SeqEntryReader(args.seqentry):
+    cost=NormFactor.getCovStat(se,args.enddist,args.quantile)
+    topr=[se.seqname,str(len(se.cov))]
     form=[]
     for c in cost:
         if c is not None:
             form.append(f"{c:.2f}",)
         else:
             form.append("na")
-    topr.extend(form)     
+    topr.extend(form)
     tp="\t".join(topr)
     writer.write(tp)
