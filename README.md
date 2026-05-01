@@ -8,7 +8,7 @@ SeqVista processes short-read alignments to extract coverage, SNP, and indel inf
 
 ### Workflow
 
-![SeqVista Pipeline](img/SeqVista_pipeline.png)
+![SeqVista Pipeline](img/SeqVista_pipeline.svg)
 
 ## Features
 
