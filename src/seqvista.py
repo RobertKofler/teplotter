@@ -17,6 +17,7 @@ import argparse
 import subprocess
 import sys
 from pathlib import Path
+from version import __version__
 
 _SRC = Path(__file__).parent
 
@@ -35,6 +36,8 @@ def main():
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+
+    parser.add_argument("--version", action="version", version=f"SeqVista {__version__}")
 
     sub = parser.add_subparsers(dest="subcommand", metavar="<subcommand>")
     for name, (_, help_text) in _SUBCOMMANDS.items():

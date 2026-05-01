@@ -3,6 +3,7 @@ import argparse
 import logging
 import pysam
 from modules import SeqBuilder, Writer, load_fasta
+from version import __version__
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -25,7 +26,7 @@ parser.add_argument("--mc-indel", type=int, required=False, dest="mcindel", defa
 parser.add_argument("--mf-indel", type=float, required=False, dest="mfindel", default=0.01, help="minimum frequency of indels")
 parser.add_argument("--outfile", type=str, required=False, dest="outfile", default=None, help="output file in so format; if none is provided output will be screen")
 parser.add_argument("--log-level", type=str, required=False, dest="loglevel", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)")
-
+parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
 args = parser.parse_args()
 logging.getLogger().setLevel(args.loglevel)

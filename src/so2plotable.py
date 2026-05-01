@@ -2,6 +2,7 @@
 import argparse
 import logging
 from modules import SeqEntry, SeqEntryReader, Writer, NormFactor
+from version import __version__
 import os
 from collections import defaultdict
 
@@ -145,6 +146,7 @@ parser.add_argument("--outfile", type=str, required=False, dest="outfile", defau
 parser.add_argument("--log-level", type=str, required=False, dest="loglevel", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)")
 parser.add_argument("--mask-bed", type=str, required=False, dest="maskbed", default=None, help="a BED file for masking; regions in the file will be masked (0-based coordinates)")
 parser.add_argument("--mask-ymax", type=int, required=False, dest="ymax", default=None, help="mask positions with coverage exceeding this value")
+parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
 args = parser.parse_args()
 logging.getLogger().setLevel(args.loglevel)
