@@ -4,7 +4,7 @@ A Python toolkit for converting BAM/SAM alignment files to sequence overview (SO
 
 ## Overview
 
-SeqVista processes short-read alignments to extract coverage, SNP, and indel information for each reference sequence. It's particularly useful for analyzing genomic regions of interest (e.g. TEs, genes, symbionts) and their coverage and variation.
+SeqVista processes short-read alignments to extract coverage, SNP, and indel information for each reference sequence. It is particularly useful for analyzing genomic regions of interest (e.g. TEs, genes, symbionts) and their coverage and variation.
 
 ### Workflow
 
@@ -26,21 +26,72 @@ SeqVista processes short-read alignments to extract coverage, SNP, and indel inf
 
 - Python 3.7+
 - pysam
-- R + ggplot2 (for visualization)
-- (Optional) samtools (for FASTA indexing)
+- R + tidyverse (for visualization)
+- conda (recommended)
+- (Optional) samtools (for BAM/FASTA indexing)
 
-### Quick Install
+### Install via conda (recommended)
+
+Create or activate a conda environment, then run the installer:
+
+```bash
+conda create -n seqvista
+conda activate seqvista
+bash shell/install.sh
+```
+
+The installer will:
+1. Install all dependencies (pysam, R, tidyverse) into the active environment via conda
+2. Copy the scripts into `$CONDA_PREFIX/lib/seqvista/`
+3. Create the `SeqVista` entry point in `$CONDA_PREFIX/bin/` so the command is available anywhere while the environment is active
+
+After installation:
+
+```bash
+SeqVista --help
+```
+
+### Manual install
+
+If you prefer not to use the installer:
 
 ```bash
 pip install pysam
+# install R and tidyverse separately, then run scripts directly:
+python src/seqvista.py --help
 ```
 
 ## Usage
 
+All tools are accessible through the central `SeqVista` command:
+
+```bash
+python src/seqvista.py --help
+```
+
+```
+usage: SeqVista [-h] <subcommand> ...
+
+Subcommands:
+  bam2so        Convert BAM/SAM → .so (sequence overview)
+  normalize     Normalize .so coverage to single-copy genes
+  estimate      Estimate per-entry coverage statistics
+  so2plotable   Convert .so → R-plottable format
+  plot          Render .plotable files to PNG via R
+```
+
+Each subcommand accepts `--help` for its full parameter list:
+
+```bash
+python src/seqvista.py bam2so --help
+```
+
+---
+
 ### 1. Convert BAM/SAM to Sequence Overview Format
 
 ```bash
-python bam2so.py \
+SeqVista bam2so \
   --infile alignments.bam \
   --fasta reference.fasta \
   --mapqth 5 \
@@ -62,10 +113,12 @@ python bam2so.py \
 - `--outfile`: Output SO file; if omitted, prints to stdout
 - `--log-level`: Logging verbosity — DEBUG, INFO, WARNING, ERROR, CRITICAL (default: INFO)
 
+---
+
 ### 2. Normalize Coverage by Single-Copy Genes
 
 ```bash
-python normalize-so.py \
+SeqVista normalize \
   --so input.so \
   --scg-end _scg \
   --end-distance 100 \
@@ -81,17 +134,19 @@ python normalize-so.py \
 - `--outfile`: Output file; if omitted, prints to stdout
 - `--log-level`: Logging verbosity (default: INFO)
 
+---
+
 ### 3. Estimate Copy Number
 
 ```bash
-python estimate-so.py \
+SeqVista estimate \
   --so normalized.so \
   --end-distance 100 \
   --exclude-quantile 25 \
   --outfile copy_numbers.txt
 ```
 
-Outputs tab-delimited format: `seqname <tab> length <tab> mean_coverage <tab> min_coverage <tab> max_coverage <tab> median_coverage <tab> ...`
+Outputs tab-delimited format: `seqname <tab> length <tab> mean_coverage <tab> min_coverage <tab> max_coverage <tab> ...`
 
 **Parameters:**
 - `--so`: Input SO file (required)
@@ -100,18 +155,20 @@ Outputs tab-delimited format: `seqname <tab> length <tab> mean_coverage <tab> mi
 - `--outfile`: Output file; if omitted, prints to stdout
 - `--log-level`: Logging verbosity (default: INFO)
 
+---
+
 ### 4. Convert to Plotable Format
 
 ```bash
 # Write all sequences to a single file
-python so2plotable.py \
+SeqVista so2plotable \
   --so input.so \
   --sample-id year1933 \
   --seq-ids gypsy,act_scg \
   --outfile sequences.plotable
 
 # Write each sequence to its own file in a directory
-python so2plotable.py \
+SeqVista so2plotable \
   --so input.so \
   --sample-id year1933 \
   --seq-ids ALL \
@@ -124,7 +181,7 @@ Generates visualization-ready tab-delimited output with columns: `seqname`, `sam
 **Parameters:**
 - `--so`: Input SO file (required)
 - `--sample-id`: Label for this sample, embedded in every output row (default: `x`)
-- `--seq-ids`: Comma-separated list of sequence IDs to include, or `ALL` to include every sequence (default: `ALL`)
+- `--seq-ids`: Comma-separated list of sequence IDs to include, or `ALL` (default: `ALL`)
 - `--outfile`: Write all selected sequences into a single plotable file
 - `--outdir`: Write one `.plotable` file per sequence into this directory (mutually exclusive with `--outfile`)
 - `--prefix`: Filename prefix applied when using `--outdir` (only valid with `--outdir`)
@@ -136,20 +193,22 @@ Generates visualization-ready tab-delimited output with columns: `seqname`, `sam
 - Both normalized and non-normalized SO files can be visualized.
 - Plotable files from different samples and sequences can be freely concatenated, enabling joint visualization across samples (e.g. `cat sample1/*.plotable sample2/*.plotable > combined.plotable`).
 
-### 5. Batch Plotting with `run_plotable.py`
+---
 
-`run_plotable.py` automates running `visualize-plotable.R` on one or more folders of `.plotable` files.
+### 5. Plot
+
+`SeqVista plot` automates running `visualize-plotable.R` on one or more folders of `.plotable` files.
 
 **Single folder — plot each file independently:**
 ```bash
-python run_plotable.py \
+SeqVista plot \
   --folder Dmel01_plottable \
   --outdir results/
 ```
 
 **Multiple folders — merge same-named files across samples, then plot (enables facetting):**
 ```bash
-python run_plotable.py \
+SeqVista plot \
   --folders Dmel01_plottable Dmel02_plottable Dmel03_plottable \
   --outdir merged_results/
 ```
@@ -158,46 +217,42 @@ python run_plotable.py \
 - `--folder`: Single sample folder; each `.plotable` file is plotted independently (mutually exclusive with `--folders`)
 - `--folders`: One or more sample folders; `.plotable` files with matching names are merged before plotting (mutually exclusive with `--folder`)
 - `--outdir` / `-o`: Output directory for the generated plots. Required when `--folders` is used; defaults to the source folder when `--folder` is used.
-- `--log`: Use a logarithmic y-axis. Can be used in two ways:
+- `--log`: Use a logarithmic y-axis:
   - `--log` (no value): always use log scale
   - `--log 1000` (with a value): automatically switch to log scale if the maximum coverage exceeds the given threshold
 
 **Examples:**
 ```bash
 # Always use log scale
-python run_plotable.py \
-  --folder Dmel01_plottable \
-  --outdir results/ \
-  --log
+SeqVista plot --folder Dmel01_plottable --outdir results/ --log
 
 # Auto-switch to log scale if max coverage exceeds 1000
-python run_plotable.py \
-  --folders Dmel01_plottable Dmel02_plottable \
-  --outdir merged_results/ \
-  --log 1000
+SeqVista plot --folders Dmel01_plottable Dmel02_plottable --outdir merged_results/ --log 1000
 ```
 
-### 6. Visualize
+---
+
+### 6. Visualize directly with R
+
 ```bash
-Rscript visualize-plotable.R sequences.plotable output.png
+Rscript src/visualize-plotable.R sequences.plotable output.png
 ```
 
-Supported output extensions include `.png`, `.pdf`, `.eps`, and `.svg`. Plotable files from different samples may also be concatenated manually and passed directly to the R script to invoke facetting:
+Supported output extensions: `.png`, `.pdf`, `.eps`, `.svg`.
+
+Plotable files from different samples can be concatenated and passed directly to the R script to invoke facetting:
 ```bash
 cat sample1.plotable sample2.plotable > combined.plotable
-Rscript visualize-plotable.R combined.plotable output.png
+Rscript src/visualize-plotable.R combined.plotable output.png
 ```
 
 An optional `--log` flag enables a logarithmic y-axis:
 ```bash
-# Always log scale
-Rscript visualize-plotable.R sequences.plotable output.png --log
-
-# Auto-switch to log scale if max coverage exceeds 1000
-Rscript visualize-plotable.R sequences.plotable output.png --log=1000
+Rscript src/visualize-plotable.R sequences.plotable output.png --log
+Rscript src/visualize-plotable.R sequences.plotable output.png --log=1000
 ```
 
-**Note:** an important design decision was that plotable entries for different samples (e.g. strains collected at different years) and sequences (e.g. TEs or SCGs) can be combined freely by the user, which allows for joint visualization.
+---
 
 ## File Formats
 
@@ -221,10 +276,12 @@ TE_001   sample_1  snp      100       A  T  3
 Feature types:
 - `cov`: per-position coverage (unmasked)
 - `ambcov`: per-position coverage from low-MAPQ (ambiguously mapping) reads
-- `mcov`: per-position masked coverage — positions masked via `--mask-bed` or `--mask-ymax`; visualized separately (e.g. in a different color) to indicate regions excluded from variant calling
+- `mcov`: per-position masked coverage — positions masked via `--mask-bed` or `--mask-ymax`; visualized separately to indicate regions excluded from variant calling
 - `snp`: SNP calls (columns: seqname, sampleid, snp, pos, ref_base, alt_base, count)
 - `ins`: insertion calls (columns: seqname, sampleid, ins, pos, length, count)
 - `del`: deletion calls (columns: seqname, sampleid, del, start, end, start_cov, end_cov, count)
+
+---
 
 ## Examples
 
@@ -232,43 +289,39 @@ Feature types:
 
 ```bash
 # 1. Convert BAM to SO
-python bam2so.py \
+SeqVista bam2so \
   --infile reads.bam \
   --fasta te_library.fasta \
   --outfile raw.so
 
 # 2. Normalize coverage
-python normalize-so.py \
+SeqVista normalize \
   --so raw.so \
   --scg-end _scg \
   --outfile normalized.so
 
 # 3. Estimate copy numbers
-python estimate-so.py \
+SeqVista estimate \
   --so normalized.so \
   --outfile copy_numbers.txt
 
 # 4. Format for plotting (one file per sequence)
-python so2plotable.py \
+SeqVista so2plotable \
   --so normalized.so \
   --sample-id my_sample \
   --seq-ids ALL \
   --outdir my_sample_plotables/
 
 # 5. Plot all sequences in the folder
-python run_plotable.py \
+SeqVista plot \
   --folder my_sample_plotables/ \
   --outdir my_sample_plots/
-
-# Or plot directly with R
-Rscript visualize-plotable.R my_sample_plotables/gypsy.plotable output.png
 ```
 
 ### Adjusting Variant Thresholds
 
-Stricter SNP filtering:
 ```bash
-python bam2so.py \
+SeqVista bam2so \
   --infile reads.bam \
   --fasta te_library.fasta \
   --mc-snp 10 \
@@ -281,7 +334,7 @@ python bam2so.py \
 ```bash
 # Generate plotables per sample
 for sample in Dmel01 Dmel02 Dmel03; do
-  python so2plotable.py \
+  SeqVista so2plotable \
     --so ${sample}_normalized.so \
     --sample-id ${sample} \
     --seq-ids ALL \
@@ -289,20 +342,22 @@ for sample in Dmel01 Dmel02 Dmel03; do
 done
 
 # Merge and plot
-python run_plotable.py \
+SeqVista plot \
   --folders Dmel01_plotables Dmel02_plotables Dmel03_plotables \
   --outdir merged_plots/
 ```
+
+---
 
 ## Core Modules
 
 ### `modules.py`
 
 Contains shared utilities:
-- **SequenceEntry**: Data class for sequence overview records
-- **SequenceEntryBuilder**: Accumulates reads for a sequence and extracts variants
-- **SequenceEntryReader**: Iterator over SO files (supports gzip)
-- **FileWriter**: Output writer (file or stdout)
+- **SeqEntry**: Data class for sequence overview records
+- **SeqBuilder**: Accumulates reads for a sequence and extracts variants
+- **SeqEntryReader**: Iterator over SO files (supports gzip)
+- **Writer**: Output writer (file or stdout)
 - **NormFactor**: Normalization using SCG coverage
 - **SNP, Indel**: Variant data classes
 
@@ -312,11 +367,11 @@ Main conversion pipeline:
 1. Loads reference FASTA
 2. Iterates alignments (skips unmapped, secondary, supplementary)
 3. Builds per-position coverage, SNPs, and indels
-4. Writes SO format output
+4. Writes SO format output; sequences with zero coverage are also written
 
 ### `normalize-so.py`
 
-Normalizes coverage using the median coverage of SCGs across the middle of each sequence (excluding ends and extreme quantiles).
+Normalizes coverage using the mean coverage of SCGs across the middle of each sequence (excluding ends and extreme quantiles).
 
 ### `estimate-so.py`
 
@@ -329,6 +384,12 @@ Transforms SO entries into a tab-delimited format suitable for visualization. Su
 ### `run_plotable.py`
 
 Batch runner that automates calling `visualize-plotable.R` on folders of `.plotable` files. Supports single-sample mode (independent plots) and multi-sample mode (merge matching files for facetted plots).
+
+### `seqvista.py`
+
+Central dispatcher. All subcommands (`bam2so`, `normalize`, `estimate`, `so2plotable`, `plot`) delegate to the corresponding script, so `SeqVista <subcommand> --help` always shows the original script's full help.
+
+---
 
 ## Tips & Best Practices
 
@@ -351,28 +412,28 @@ Batch runner that automates calling `visualize-plotable.R` on folders of `.plota
    ```bash
    gzip output.so
    # SO files ending in .gz are read automatically
-   python so2plotable.py --so output.so.gz ...
+   SeqVista so2plotable --so output.so.gz ...
    ```
 
-6. **Multi-sample comparison**: Use `run_plotable.py --folders` to merge plotable files across samples automatically rather than concatenating files by hand.
+6. **Multi-sample comparison**: Use `SeqVista plot --folders` to merge plotable files across samples automatically rather than concatenating files by hand.
+
+---
 
 ## Troubleshooting
 
 ### "Reference 'X' not found in FASTA"
-Ensure the BAM header references sequences present in your FASTA file. Check consistency:
+Ensure the BAM header references sequences present in your FASTA file:
 ```bash
 samtools view -H alignments.bam | head
 samtools faidx reference.fasta && head reference.fasta.fai
 ```
 
 ### Missing FASTA index
-Create an index for faster reference lookups:
 ```bash
 samtools faidx reference.fasta
 ```
 
 ### pysam import errors
-Install or upgrade pysam:
 ```bash
 pip install --upgrade pysam
 ```
@@ -380,9 +441,11 @@ pip install --upgrade pysam
 ### Normalization factor is zero
 This usually means no sequences with the `--scg-end` suffix were found, or their coverage is effectively zero. Verify that your reference FASTA includes properly named SCG sequences and that reads mapped to them.
 
-## Author
+---
 
-Original authors: Robert Kofler, Sarah Saadain
+## Authors
+
+Robert Kofler, Sarah Saadain
 
 ## License
 
@@ -394,7 +457,3 @@ If you use SeqVista in your research, please cite:
 ```
 TODO
 ```
-
-## Contributing
-
-Contributions welcome! Please open an issue or submit a pull request.
