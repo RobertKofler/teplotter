@@ -23,21 +23,18 @@ jobs:
           default_bump: false
           release_branches: main
 
-      - name: Update version.py from tag
+      - name: Update and commit version.py
         if: steps.tag.outputs.new_tag != ''
         run: |
-          TAG=${{ steps.tag.outputs.new_tag }}
           VERSION=${TAG#v}
           sed -i "s/__version__ = .*/__version__ = \"$VERSION\"/" src/version.py
-
-      - name: Commit version.py back to main
-        if: steps.tag.outputs.new_tag != ''
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "${{ github.event.head_commit.author.name }}"
+          git config user.email "${{ github.event.head_commit.author.email }}"
           git add src/version.py
-          git commit -m "chore: sync version.py to ${{ steps.tag.outputs.new_tag }} [skip ci]" || true
+          git commit -m "chore: sync version.py to ${{ steps.tag.outputs.new_tag }} [skip ci]"
           git push origin HEAD:main
+        env:
+          TAG: ${{ steps.tag.outputs.new_tag }}
 
       - name: Create GitHub Release
         if: steps.tag.outputs.new_tag != ''
