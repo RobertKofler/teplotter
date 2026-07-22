@@ -1,10 +1,10 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 OPR/127.0.0.0">
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 OPR/127.0.0.0" version="29.3.7">
   <diagram id="tGLoQCYx86gIt0X3TBVe" name="Page-1">
-    <mxGraphModel dx="1083" dy="876" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="547" dy="350" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1;fontColor=#1a1a2e;" value="SeqVista Pipeline" vertex="1">
+        <mxCell id="title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1;fontColor=#1a1a2e;" value="TEplotter Pipeline" vertex="1">
           <mxGeometry height="40" width="840" x="200" y="40" as="geometry" />
         </mxCell>
         <mxCell id="leg_title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontStyle=1;fontSize=12;" value="Legend" vertex="1">
@@ -13,7 +13,7 @@
         <mxCell id="leg_input" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" value="Input file" vertex="1">
           <mxGeometry height="30" width="110" x="930" y="145" as="geometry" />
         </mxCell>
-        <mxCell id="leg_script" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="SeqVista module" vertex="1">
+        <mxCell id="leg_script" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="Python script" vertex="1">
           <mxGeometry height="30" width="110" x="930" y="185" as="geometry" />
         </mxCell>
         <mxCell id="leg_rscript" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=10;" value="R script" vertex="1">
@@ -31,7 +31,7 @@
         <mxCell id="fasta" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" value="reference.fasta" vertex="1">
           <mxGeometry height="50" width="150" x="600" y="110" as="geometry" />
         </mxCell>
-        <mxCell id="bam2so" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" value="bam2so" vertex="1">
+        <mxCell id="bam2so" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" value="bam2so.py" vertex="1">
           <mxGeometry height="50" width="150" x="500" y="200" as="geometry" />
         </mxCell>
         <mxCell id="bam2so_params" parent="1" style="text;html=1;strokeColor=#82b366;fillColor=#f9fff9;align=left;fontSize=10;whiteSpace=wrap;rounded=1;" value="--mapqth  --mc-snp  --mf-snp&#xa;--mc-indel  --mf-indel" vertex="1">
@@ -49,7 +49,7 @@
         <mxCell id="e_bam2so_rawso" edge="1" parent="1" source="bam2so" style="edgeStyle=orthogonalEdgeStyle;" target="rawso">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="normso" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" value="normalize" vertex="1">
+        <mxCell id="normso" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" value="normalize-so.py" vertex="1">
           <mxGeometry height="50" width="150" x="500" y="360" as="geometry" />
         </mxCell>
         <mxCell id="normso_params" parent="1" style="text;html=1;strokeColor=#82b366;fillColor=#f9fff9;align=left;fontSize=10;whiteSpace=wrap;rounded=1;" value="--scg-end  --end-distance&#xa;--exclude-quantile" vertex="1">
@@ -64,7 +64,7 @@
         <mxCell id="e_normso_normsofile" edge="1" parent="1" source="normso" style="edgeStyle=orthogonalEdgeStyle;" target="normsofile">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="estimateso" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" value="estimate" vertex="1">
+        <mxCell id="estimateso" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" value="estimate-so.py" vertex="1">
           <mxGeometry height="50" width="150" x="360" y="520" as="geometry" />
         </mxCell>
         <mxCell id="estimateso_params" parent="1" style="text;html=1;strokeColor=#82b366;fillColor=#f9fff9;align=left;fontSize=10;whiteSpace=wrap;rounded=1;" value="--end-distance&#xa;--exclude-quantile" vertex="1">
@@ -79,7 +79,7 @@
         <mxCell id="e_estimateso_copynumbers" edge="1" parent="1" source="estimateso" style="edgeStyle=orthogonalEdgeStyle;" target="copynumbers">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="so2plotable" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" value="so2plotable" vertex="1">
+        <mxCell id="so2plotable" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" value="so2plotable.py" vertex="1">
           <mxGeometry height="50" width="150" x="640" y="520" as="geometry" />
         </mxCell>
         <mxCell id="so2plotable_params" parent="1" style="text;html=1;strokeColor=#82b366;fillColor=#f9fff9;align=left;fontSize=10;whiteSpace=wrap;rounded=1;" value="--sample-id  --seq-ids&lt;br&gt;--outfile/--outdir  --prefix" vertex="1">
@@ -94,7 +94,7 @@
         <mxCell id="e_so2plotable_plotablefile" edge="1" parent="1" source="so2plotable" style="edgeStyle=orthogonalEdgeStyle;" target="plotablefile">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="runplotable" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" value="plot" vertex="1">
+        <mxCell id="runplotable" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" value="run_plotable.py" vertex="1">
           <mxGeometry height="50" width="150" x="640" y="680" as="geometry" />
         </mxCell>
         <mxCell id="runplotable_params" parent="1" style="text;html=1;strokeColor=#82b366;fillColor=#f9fff9;align=left;fontSize=10;whiteSpace=wrap;rounded=1;" value="--folder/--folders  --outdir&lt;br&gt;(merges files for facetting)" vertex="1">

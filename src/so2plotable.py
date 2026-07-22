@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import logging
-from modules import SeqEntry, SeqEntryReader, Writer, NormFactor
-from version import __version__
+from modules import SequenceEntry, SequenceEntryReader, FileWriter, NormFactor
 import os
 from collections import defaultdict
 
@@ -44,9 +43,9 @@ def prepareCoveragForPrint(set:list, sampleid:str,covtype:str):
     tmp=[]
     for i,c in enumerate(set):
         # seqname, sampleid, cov, pos, count
-        t=[se.seqname,sampleid,covtype,str(i+1),str(c)]
+        t=[se.sequence_name,sampleid,covtype,str(i+1),str(c)]
         tmp.append(t)
-
+       
     first,last=tmp[0],tmp[-1]
     newfirst=[first[0],first[1],first[2],first[3],"0.0"]
     newlast=[last[0],last[1],last[2],last[3],"0.0"]
@@ -58,11 +57,11 @@ def prepareCoveragForPrint(set:list, sampleid:str,covtype:str):
         topr.append(format_col(i))
     return topr
 
-def prepareForPrint(se:SeqEntry, sampleid:str, tomask=None, ymax=None):
-    localmask = tomask[se.seqname] if tomask is not None else defaultdict(bool)
+def prepareForPrint(se:SequenceEntry, sampleid:str, tomask=None, ymax=None):
+    localmask = tomask[se.sequence_name] if tomask is not None else defaultdict(bool)
 
-    cov = list(se.cov)
-    ambcov = list(se.ambcov)
+    cov = list(se.coverage)
+    ambcov = list(se.ambiguous_coverage)
     mcov = [0] * len(cov)
 
     for i in range(len(cov)):
@@ -85,7 +84,7 @@ def prepareForPrint(se:SeqEntry, sampleid:str, tomask=None, ymax=None):
     lines.extend(ambcovt)
     lines.extend(mcovt)
 
-    for s in se.snplist:
+    for s in se.snp_list:
         if s.pos in localmask:
             continue
         # seqname, sampleid, snp, pos, refc, ac, tc, cc, gc
@@ -93,15 +92,15 @@ def prepareForPrint(se:SeqEntry, sampleid:str, tomask=None, ymax=None):
         for base,count in a.items():
             if count ==0 or base==s.refc:
                 continue
-            tmp=[se.seqname,sampleid,"snp",str(s.pos + 1), s.refc,base,str(count)]
+            tmp=[se.sequence_name,sampleid,"snp",str(s.pos), s.refc,base,str(count)]
             lines.append(format_col(tmp))
 
-    for i in se.indellist:
+    for i in se.indel_list:
         if i.type=="ins":
             if i.pos in localmask:
                 continue
             # seqname, sampleid, ins, pos, length, count
-            tmp=[se.seqname,sampleid,"ins",str(i.pos),str(i.length),str(i.count)]
+            tmp=[se.sequence_name,sampleid,"ins",str(i.pos),str(i.length),str(i.count)]
             lines.append(format_col(tmp))
 
         elif i.type=="del":
@@ -115,9 +114,9 @@ def prepareForPrint(se:SeqEntry, sampleid:str, tomask=None, ymax=None):
             endpos=startpos+i.length+1
             if startpos in localmask or endpos in localmask:
                 continue
-            startcov=se.cov[startpos-1]
-            endcov=se.cov[endpos-1]
-            tmp=[se.seqname,sampleid,"del",str(startpos),str(endpos),str(startcov),str(endcov),str(i.count)]
+            startcov=se.coverage[startpos-1]
+            endcov=se.coverage[endpos-1]
+            tmp=[se.sequence_name,sampleid,"del",str(startpos),str(endpos),str(startcov),str(endcov),str(i.count)]
             lines.append(format_col(tmp))
 
         else:
@@ -128,7 +127,7 @@ def prepareForPrint(se:SeqEntry, sampleid:str, tomask=None, ymax=None):
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-parser = argparse.ArgumentParser(description="""
+parser = argparse.ArgumentParser(description="""           
 normalizes the coverage for seqentries
 """,formatter_class=argparse.RawDescriptionHelpFormatter,
 epilog="""
@@ -146,7 +145,6 @@ parser.add_argument("--outfile", type=str, required=False, dest="outfile", defau
 parser.add_argument("--log-level", type=str, required=False, dest="loglevel", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)")
 parser.add_argument("--mask-bed", type=str, required=False, dest="maskbed", default=None, help="a BED file for masking; regions in the file will be masked (0-based coordinates)")
 parser.add_argument("--mask-ymax", type=int, required=False, dest="ymax", default=None, help="mask positions with coverage exceeding this value")
-parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
 args = parser.parse_args()
 logging.getLogger().setLevel(args.loglevel)
@@ -160,7 +158,7 @@ if args.prefix != "" and args.outputdir is None:
     parser.error("invalid parameters; prefix only works if output-dir is provided")
 
 # initialize writer
-writer=Writer(args.outfile)
+writer=FileWriter(args.outfile)
 tomask = readbed(args.maskbed)
 
 #if no output file is provided, don't write log to screen, otherwise it will mess up the output
@@ -182,13 +180,13 @@ if args.outputdir is not None:
 
 prefix = args.prefix
 
-for se in SeqEntryReader(args.so):
-    if is_print_all_requested or se.seqname in seqset:
+for se in SequenceEntryReader(args.so):
+    if is_print_all_requested or se.sequence_name in seqset:
 
         tp = prepareForPrint(se, args.sampleid, tomask, args.ymax)
-
+        
         if args.outputdir is not None:
-            filename=se.seqname
+            filename=se.sequence_name
             filename=filename.replace("/","_")
             filename=filename.replace(" ","_")
             filename=prefix + filename + ".plotable"

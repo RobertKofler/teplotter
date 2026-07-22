@@ -24,7 +24,6 @@ import subprocess
 import sys
 from pathlib import Path
 import tempfile
-from version import __version__
 
 log = logging.getLogger(__name__)
 
@@ -169,7 +168,6 @@ def main():
             "With a value (--log 1000): auto-switch to log if max coverage exceeds N."
         ),
     )
-    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
     args = parser.parse_args()
 
