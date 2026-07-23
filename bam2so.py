@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import argparse
 import pysam
 from modules import SeqBuilder, Writer, load_fasta

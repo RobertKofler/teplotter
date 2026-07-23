@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import argparse
 from modules import SeqEntryReader, NormFactor, Writer
 
@@ -15,6 +15,7 @@ Authors
 """)
 parser.add_argument('--so', type=str, default=None,dest="seqentry", required=True, help="A sequence overview (so) file")
 parser.add_argument("--scg-end", type=str, required=False, dest="scgend", default="_scg", help="the ending by which to recognize single copy gens (scg)")
+parser.add_argument("--scg-begin", type=str, required=False, dest="scgbegin", default="", help="the beginning by which to recognize single copy gens (scg)")
 parser.add_argument("--end-distance", type=int, required=False, dest="enddist", default=100, help="distance from ends for normalizing")
 parser.add_argument("--exclude-quantile", type=int, required=False, dest="quantile", default=25, help="exclude the most extreme coverage quantiles for normalizing")
 parser.add_argument("--output-file", type=str, required=False, dest="outfile", default=None, help="output file in so format; if none is provided output will be screen")
@@ -22,7 +23,7 @@ parser.add_argument("--output-file", type=str, required=False, dest="outfile", d
 args = parser.parse_args()
 writer = Writer(args.outfile)
 # first get the normalization factor
-normfactor = NormFactor.getNormalizationFactor(args.seqentry, args.scgend ,args.enddist, args.quantile)
+normfactor = NormFactor.getNormalizationFactor(args.seqentry,args.scgbegin ,args.scgend ,args.enddist, args.quantile)
 
 # than normalize each entry
 for se in SeqEntryReader(args.seqentry):

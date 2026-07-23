@@ -255,11 +255,13 @@ class NormFactor:
 
 
     @classmethod
-    def getNormalizationFactor(cls, filename:str, scg_suffix:str, min_end_distance: int, quanitle:int):
+    def getNormalizationFactor(cls, filename:str, scg_prefix:str,scg_suffix:str, min_end_distance: int, quanitle:int):
         # compute the normalization factor from a seq-entry file (seq overview file so-file)
         scgs=[]
         for se in SeqEntryReader(filename):
             if se.seqname.endswith(scg_suffix):
+                scgs.append(se)
+            elif scg_prefix !="" and se.seqname.startswith(scg_prefix):
                 scgs.append(se)
 
         if len(scgs)==0:
